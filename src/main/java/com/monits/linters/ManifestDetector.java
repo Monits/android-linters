@@ -9,10 +9,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
 
-import com.android.annotations.NonNull;
 import com.android.tools.lint.detector.api.Category;
 import com.android.tools.lint.detector.api.Detector;
 import com.android.tools.lint.detector.api.Implementation;
@@ -21,6 +22,7 @@ import com.android.tools.lint.detector.api.Location;
 import com.android.tools.lint.detector.api.Scope;
 import com.android.tools.lint.detector.api.Severity;
 import com.android.tools.lint.detector.api.XmlContext;
+
 
 public class ManifestDetector extends Detector implements Detector.XmlScanner {
 
@@ -31,17 +33,21 @@ public class ManifestDetector extends Detector implements Detector.XmlScanner {
 			Severity.WARNING, new Implementation(ManifestDetector.class, Scope.MANIFEST_SCOPE));
 	private final Map<String, Integer> permissions;
 
+	/**
+	 *  Creates a new ManifestDetector instance.
+	 */
 	public ManifestDetector() {
 		this.permissions = new HashMap<>();
 	}
 
+	@Nonnull
 	@Override
 	public Collection<String> getApplicableElements() {
 		return Arrays.asList(TAG_USES_PERMISSION);
 	}
 
 	@Override
-	public void visitElement(@NonNull final XmlContext context, @NonNull final Element element) {
+	public void visitElement(@Nonnull final XmlContext context, @Nonnull final Element element) {
 		final Attr nameNode = element.getAttributeNodeNS(ANDROID_URI, ATTR_NAME);
 		if (nameNode == null) {
 			return;
