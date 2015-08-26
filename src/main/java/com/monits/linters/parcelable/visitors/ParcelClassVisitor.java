@@ -10,7 +10,6 @@ import org.objectweb.asm.tree.ClassNode;
 
 import com.android.tools.lint.detector.api.ClassContext;
 import com.monits.linters.parcelable.methods.AbstractInnerMethod;
-import com.monits.linters.parcelable.models.ParcelableField;
 import com.monits.linters.parcelable.models.QueueManager;
 
 public class ParcelClassVisitor extends ClassVisitor {
@@ -22,7 +21,7 @@ public class ParcelClassVisitor extends ClassVisitor {
 	private final ClassNode classNode;
 	private final ClassContext context;
 	private final ClassReader cr;
-	private final QueueManager<ParcelableField> queueManager;
+	private final QueueManager queueManager;
 
 	/**
 	 * Creates a new ParcelClassVisitor instance, with
@@ -35,7 +34,7 @@ public class ParcelClassVisitor extends ClassVisitor {
 	 * @param classReader The class reader that parses the class
 	 */
 	public ParcelClassVisitor(final int api, @Nonnull final ClassNode classNode,
-		@Nonnull final ClassContext context, @Nonnull final QueueManager<ParcelableField> queueManager,
+		@Nonnull final ClassContext context, @Nonnull final QueueManager queueManager,
 		@Nonnull final ClassReader classReader) {
 		this(api, classNode, null, context, queueManager, classReader);
 	}
@@ -52,7 +51,7 @@ public class ParcelClassVisitor extends ClassVisitor {
 	 */
 	public ParcelClassVisitor(final int api, @Nonnull final ClassNode classNode,
 		@Nullable final AbstractInnerMethod innerMethod, @Nonnull final ClassContext context,
-		@Nonnull final QueueManager<ParcelableField> queueManager, @Nonnull final ClassReader classReader) {
+		@Nonnull final QueueManager queueManager, @Nonnull final ClassReader classReader) {
 		super(api);
 		this.classNode = classNode;
 		this.innerMethod = innerMethod;

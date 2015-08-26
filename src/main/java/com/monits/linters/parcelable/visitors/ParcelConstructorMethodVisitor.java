@@ -9,8 +9,11 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
 
 import com.android.tools.lint.detector.api.ClassContext;
+import com.google.common.collect.Multimap;
 import com.monits.linters.parcelable.methods.AbstractInnerMethod;
 import com.monits.linters.parcelable.methods.ReadInnerMethod;
+import com.monits.linters.parcelable.models.Method;
+import com.monits.linters.parcelable.models.ParcelMethodManager;
 import com.monits.linters.parcelable.models.ParcelableField;
 import com.monits.linters.parcelable.models.QueueManager;
 
@@ -36,14 +39,14 @@ public class ParcelConstructorMethodVisitor extends AbstractMethodVisitor {
 	public ParcelConstructorMethodVisitor(final int api,
 		@Nonnull final ClassNode classNode, @Nonnull final String method,
 		@Nonnull final String desc, @Nonnull final ClassContext context,
-		@Nonnull final ClassReader cr, @Nonnull final QueueManager<ParcelableField> queueManager) {
+		@Nonnull final ClassReader cr, @Nonnull final QueueManager queueManager) {
 		super(api, classNode, method, desc, context, cr, queueManager);
 	}
 
 
 	@Override
 	public void addFieldToQueue(@Nonnull final ParcelableField field) {
-		queueManager.getReadQueue().offer(field);
+		queueManager.getReadFieldQueue().offer(field);
 	}
 
 	@Override
@@ -51,6 +54,14 @@ public class ParcelConstructorMethodVisitor extends AbstractMethodVisitor {
 		return opcode == PUTFIELD;
 	}
 
+	@Override
+	public void addMethodToQueue(@Nonnull final Method method) {
+		final Multimap<String, String> parcelableMethods = ParcelMethodManager.INSTANCE
+				.getParcelableMethods();
+		if (parcelableMethods.keySet().contains(method.getName())) {
+			queueManager.getReadMethodQueue().add(method);
+		}
+	}
 
 	@Override
 	public AbstractInnerMethod createInnerMethod(@Nonnull final String methodName,

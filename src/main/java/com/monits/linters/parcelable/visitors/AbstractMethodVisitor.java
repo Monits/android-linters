@@ -13,6 +13,7 @@ import org.objectweb.asm.tree.ClassNode;
 
 import com.android.tools.lint.detector.api.ClassContext;
 import com.monits.linters.parcelable.methods.AbstractInnerMethod;
+import com.monits.linters.parcelable.models.Method;
 import com.monits.linters.parcelable.models.ParcelableField;
 import com.monits.linters.parcelable.models.QueueManager;
 
@@ -25,6 +26,7 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 
 	private static final String OBJECT_CLASS = Type.getDescriptor(Object.class);
 	private static final String PARCELABLE_INTERFACE = "android/os/Parcelable";
+	private static final String PARCELABLE_OWNER = "android/os/Parcel";
 
 	@SuppressFBWarnings(value = "MISSING_FIELD_IN_TO_STRING",
 			justification = "Field used for local validation")
@@ -41,7 +43,7 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 	protected final ClassNode classNode;
 	protected final ClassContext context;
 	protected final ClassReader cr;
-	protected QueueManager<ParcelableField> queueManager;
+	protected QueueManager queueManager;
 	/**
 	 * Creates a new AbstractMethodVisitor instance
 	 *
@@ -56,7 +58,7 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 	public AbstractMethodVisitor(final int api, @Nonnull final ClassNode classNode,
 		@Nonnull final String method, @Nonnull final String desc,
 		@Nonnull final ClassContext context, @Nonnull final ClassReader cr,
-		@Nonnull final QueueManager<ParcelableField> queueManager) {
+		@Nonnull final QueueManager queueManager) {
 		super(api);
 		this.classNode = classNode;
 		this.method = method;
@@ -83,13 +85,20 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 
 	@Override
 	public void visitMethodInsn(final int opcode, @Nonnull final String owner,
-		@Nonnull final String name, @Nonnull final String desc, final boolean itf) {
+			@Nonnull final String name, @Nonnull final String desc,
+			final boolean itf) {
 		if (INVOKESPECIAL == opcode) {
 			handleInvokeSpecial(owner, name, desc);
-		} else if (INVOKEVIRTUAL == opcode && owner.equals(classNode.name)) {
-			cr.accept(new ParcelClassVisitor(api, classNode,
+		} else if (INVOKEVIRTUAL == opcode) {
+			if (owner.equals(classNode.name)) {
+				cr.accept(new ParcelClassVisitor(api, classNode,
 					createInnerMethod(name, desc), context, queueManager, cr), 0);
+			} else if (PARCELABLE_OWNER.equals(owner)) {
+				addMethodToQueue(new Method(name, context.getLocationForLine(
+						line, null, null, null)));
+			}
 		}
+		super.visitMethodInsn(opcode, owner, name, desc, itf);
 	}
 
 	private void handleInvokeSpecial(@Nonnull final String owner,
@@ -140,6 +149,14 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 	 * @param field The field that you must add into the queue
 	 */
 	public abstract void addFieldToQueue(@Nonnull final ParcelableField field);
+
+	/**
+	 * Add the method in the write queue or in the read queue
+	 *
+	 * @param method
+	 *            The method that you must add into the queue
+	 */
+	public abstract void addMethodToQueue(@Nonnull final Method method);
 
 	/**
 	 * Create a {@link WriteToParcelMethodVisitor} or a

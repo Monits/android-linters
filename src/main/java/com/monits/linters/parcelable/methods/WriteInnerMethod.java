@@ -7,7 +7,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
 
 import com.android.tools.lint.detector.api.ClassContext;
-import com.monits.linters.parcelable.models.ParcelableField;
 import com.monits.linters.parcelable.models.QueueManager;
 import com.monits.linters.parcelable.visitors.WriteToParcelMethodVisitor;
 
@@ -34,7 +33,7 @@ public class WriteInnerMethod extends AbstractInnerMethod {
 	public WriteInnerMethod(final int api,
 			@Nonnull final ClassNode classNode, @Nonnull final String methodName,
 			@Nonnull final String desc, @Nonnull final ClassContext context,
-			@Nonnull final ClassReader cr, @Nonnull final QueueManager<ParcelableField> queueManager) {
+			@Nonnull final ClassReader cr, @Nonnull final QueueManager queueManager) {
 		super(methodName);
 		this.methodVisitor = new WriteToParcelMethodVisitor(api, classNode,
 				methodName, desc, context, cr, queueManager);

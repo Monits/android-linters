@@ -5,6 +5,7 @@ import static org.objectweb.asm.Opcodes.ASM5;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -27,6 +28,8 @@ import com.android.tools.lint.detector.api.Implementation;
 import com.android.tools.lint.detector.api.Issue;
 import com.android.tools.lint.detector.api.Scope;
 import com.android.tools.lint.detector.api.Severity;
+import com.monits.linters.parcelable.models.Method;
+import com.monits.linters.parcelable.models.ParcelMethodManager;
 import com.monits.linters.parcelable.models.ParcelableField;
 import com.monits.linters.parcelable.models.QueueManager;
 import com.monits.linters.parcelable.visitors.ParcelClassVisitor;
@@ -45,8 +48,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ParcelDetector extends Detector implements ClassScanner {
 	private static final String MESSAGE_ERROR = "You are writing and reading in different"
 			+ " ways or you forgot to read or write some variables";
-	private final Queue<ParcelableField> writeQueue;
-	private final Queue<ParcelableField> readQueue;
+	private final Queue<ParcelableField> writeFieldQueue;
+	private final Queue<ParcelableField> readFieldQueue;
+	private final Queue<Method> readMethodQueue;
+	private final Queue<Method> writeMethodQueue;
 
 	@SuppressFBWarnings(value = "MISSING_FIELD_IN_TO_STRING" ,
 			justification = "Variable used for local validation only")
@@ -59,14 +64,21 @@ public class ParcelDetector extends Detector implements ClassScanner {
 					+ " read the variables in the same order (A and then B) and you have to"
 					+ " read the same number of variables that you wrote", Category.CORRECTNESS, 8, Severity.ERROR,
 			new Implementation(ParcelDetector.class, Scope.CLASS_FILE_SCOPE));
-
+	public static final Issue INCOMPATIBLE_READ_WRITE_TYPE = Issue.create(
+			"IncompatibleReadWriteType", //$NON-NLS-1$
+			"You are writing and reading different types",
+			"If you write A, you should read the same type",
+			Category.CORRECTNESS, 8, Severity.ERROR,
+			new Implementation(ParcelDetector.class, Scope.CLASS_FILE_SCOPE));
 	/**
 	 * Constructs a new {@link com.com.monits.linters.parcelable.checks.ParcelDetector}
 	 * check
 	 */
 	public ParcelDetector() {
-		this.writeQueue = new LinkedList<>();
-		this.readQueue = new LinkedList<>();
+		this.writeFieldQueue = new LinkedList<>();
+		this.readFieldQueue = new LinkedList<>();
+		this.writeMethodQueue = new LinkedList<>();
+		this.readMethodQueue = new LinkedList<>();
 	}
 
 	@Nonnull
@@ -77,22 +89,45 @@ public class ParcelDetector extends Detector implements ClassScanner {
 
 	@Override
 	public void afterCheckFile(@Nonnull final Context context) {
-		while (!writeQueue.isEmpty() && !readQueue.isEmpty()) {
-			final ParcelableField writeField = writeQueue.peek();
-			final ParcelableField readField = readQueue.peek();
-			if (writeField.equals(readField)) {
-				writeQueue.remove(writeField);
-				readQueue.remove(readField);
-			} else {
-				context.report(MISSING_OR_OUT_OF_ORDER, writeField.getLocation(), MESSAGE_ERROR);
-				writeQueue.remove(writeField);
-				readQueue.remove(writeField);
+		reportMissingOrOutOfOrder(context);
+		reportIncompatibleType(context);
+		resetVariables();
+	}
+
+	private void reportIncompatibleType(@Nonnull final Context context) {
+		while (!writeMethodQueue.isEmpty()
+				&& writeMethodQueue.size() == readMethodQueue.size()) {
+			final Method readMethod = readMethodQueue.poll();
+			final Method writeMethod = writeMethodQueue.poll();
+
+			final Collection<String> values = ParcelMethodManager.INSTANCE
+					.getParcelableMethods().get(readMethod.getName());
+			if (values != null && !values.contains(writeMethod.getName())) {
+				context.report(INCOMPATIBLE_READ_WRITE_TYPE,
+						readMethod.getLocation(),
+						"Incompatible types: " + readMethod.getName() + " - "
+								+ writeMethod.getName());
 			}
 		}
-		reportMissingVariables(context, readQueue);
-		reportMissingVariables(context, writeQueue);
+	}
 
-		resetVariables();
+	private void reportMissingOrOutOfOrder(@Nonnull final Context context) {
+		while (!writeFieldQueue.isEmpty() && !readFieldQueue.isEmpty()) {
+			final ParcelableField writeField = writeFieldQueue.peek();
+			final ParcelableField readField = readFieldQueue.peek();
+			if (writeField.equals(readField)) {
+				writeFieldQueue.remove(writeField);
+				readFieldQueue.remove(readField);
+			} else {
+				context.report(MISSING_OR_OUT_OF_ORDER,
+						writeField.getLocation(), MESSAGE_ERROR);
+				writeFieldQueue.remove(writeField);
+				readFieldQueue.remove(writeField);
+			}
+		}
+		reportMissingVariables(context, readFieldQueue);
+		reportMissingVariables(context, writeFieldQueue);
+
 	}
 
 	private void reportMissingVariables(@Nonnull final Context context,
@@ -103,8 +138,10 @@ public class ParcelDetector extends Detector implements ClassScanner {
 	}
 
 	private void resetVariables() {
-		writeQueue.clear();
-		readQueue.clear();
+		writeFieldQueue.clear();
+		readFieldQueue.clear();
+		writeMethodQueue.clear();
+		readMethodQueue.clear();
 		classLinted = false;
 	}
 
@@ -114,7 +151,9 @@ public class ParcelDetector extends Detector implements ClassScanner {
 		if (!classLinted) {
 			try {
 				final ClassReader cr = new ClassReader(new FileInputStream(context.file));
-				final QueueManager<ParcelableField> queueManager = new QueueManager<>(writeQueue, readQueue);
+				final QueueManager queueManager = new QueueManager(
+						writeFieldQueue, readFieldQueue, writeMethodQueue,
+						readMethodQueue);
 				cr.accept(new ParcelClassVisitor(ASM5, classNode, context, queueManager, cr), 0);
 				classLinted = true;
 			} catch (final IOException e) {

@@ -16,6 +16,7 @@ public class MonitsIssueRegistry extends IssueRegistry {
 	@Override
 	public List<Issue> getIssues() {
 		return Arrays.asList(ManifestDetector.DUPLICATE_USES_PERMISSION,
-				ParcelDetector.MISSING_OR_OUT_OF_ORDER);
+			ParcelDetector.MISSING_OR_OUT_OF_ORDER,
+			ParcelDetector.INCOMPATIBLE_READ_WRITE_TYPE);
 	}
 }
