@@ -75,10 +75,10 @@ public class ParcelDetector extends Detector implements ClassScanner {
 	 * check
 	 */
 	public ParcelDetector() {
-		this.writeFieldQueue = new LinkedList<>();
-		this.readFieldQueue = new LinkedList<>();
-		this.writeMethodQueue = new LinkedList<>();
-		this.readMethodQueue = new LinkedList<>();
+		writeFieldQueue = new LinkedList<>();
+		readFieldQueue = new LinkedList<>();
+		writeMethodQueue = new LinkedList<>();
+		readMethodQueue = new LinkedList<>();
 	}
 
 	@Nonnull
