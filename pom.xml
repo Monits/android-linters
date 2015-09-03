@@ -53,6 +53,7 @@
 		<fingbugs-annotations-version>3.0.0</fingbugs-annotations-version>
 		<asm-all-version>5.0.3</asm-all-version>
 		<guava-version>17.0</guava-version>
+		<hamcrest-version>1.3</hamcrest-version>
 	</properties>
 
 	<build>
@@ -109,6 +110,13 @@
 			<groupId>com.android.tools.lint</groupId>
 			<artifactId>lint-tests</artifactId>
 			<version>${android-version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<version>${hamcrest-version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>

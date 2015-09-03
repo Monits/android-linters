@@ -3,6 +3,7 @@ package com.monits.linters;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import com.android.tools.lint.Warning;
 import com.android.tools.lint.checks.infrastructure.LintDetectorTest;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -34,6 +36,30 @@ public abstract class AbstractTestCase extends LintDetectorTest {
 	private static final String OUTPUT_DIR_OPTION_COMPILE = "-d";
 	private static final char DOUBLE_COLON = ':';
 
+	private final InMemoryReporter inMemoryReporter;
+
+	/**
+	 * Constructor
+	 */
+	public AbstractTestCase() {
+		super();
+		try {
+			inMemoryReporter = new InMemoryReporter();
+		} catch (final IOException e) {
+			throw new IOError(e);
+		}
+	}
+
+	@Override
+	public void setUp() {
+		getWarnings().clear();
+	}
+
+	@Nonnull
+	public List<Warning> getWarnings() {
+		return inMemoryReporter.getIssues();
+	}
+
 	@Override
 	protected InputStream getTestResource(final String relativePath, final boolean expectExists) {
 		final String path = DATA_PATH + relativePath;
@@ -42,6 +68,15 @@ public abstract class AbstractTestCase extends LintDetectorTest {
 			return null;
 		}
 		return stream;
+	}
+
+	@Override
+	protected TestLintClient createClient() {
+		final TestLintClient lintClient = super.createClient();
+
+		lintClient.getFlags().getReporters().add(inMemoryReporter);
+
+		return lintClient;
 	}
 
 	@Nonnull
