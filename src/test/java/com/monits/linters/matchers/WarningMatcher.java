@@ -22,7 +22,7 @@ public class WarningMatcher extends BaseMatcher<Warning> {
 	public WarningMatcher(@Nonnull final String fileName, @Nonnull final String errorMessage,
 			final int line) {
 		this.fileName = fileName;
-		message = errorMessage;
+		this.message = errorMessage;
 		this.line = line;
 	}
 
@@ -35,7 +35,12 @@ public class WarningMatcher extends BaseMatcher<Warning> {
 
 			criteriaMatches &= warning.file.getName().equals(fileName);
 
-			criteriaMatches &= warning.line == line;
+			// https://android.googlesource.com/platform/tools/base/+/1efa1e4500083a544191c5f2395ef67c0ec37aa5/
+			// lint/cli/src/main/java/com/android/tools/lint/TextReporter.java#118
+			// The code line reported in the Warning class is the previous code line,
+			// when they are reporting the issue they are adding a 1.
+			// We need to subtract a 1 to match with the reported code line.
+			criteriaMatches &= warning.line == line - 1;
 
 			criteriaMatches &= warning.message.equals(message);
 
