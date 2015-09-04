@@ -1,0 +1,32 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class ReadIncompatibleTypes implements Parcelable {
+	public static final Parcelable.Creator<ReadIncompatibleTypes> CREATOR = new Parcelable.Creator<ReadIncompatibleTypes>() {
+		@Override
+		public ReadIncompatibleTypes createFromParcel(final Parcel in) {
+			return new ReadIncompatibleTypes(in);
+		}
+
+		@Override
+		public ReadIncompatibleTypes[] newArray(final int size) {
+			return new ReadIncompatibleTypes[size];
+		}
+	};
+
+	private int num;
+
+	public ReadIncompatibleTypes(final Parcel in) {
+		num = Integer.parseInt(in.readString());
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(final Parcel dest, final int i) {
+		dest.writeInt(num);
+	}
+}

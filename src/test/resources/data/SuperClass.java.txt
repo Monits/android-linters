@@ -1,0 +1,32 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class SuperClass implements Parcelable {
+	public static final Parcelable.Creator<SuperClass> CREATOR = new Parcelable.Creator<SuperClass>() {
+		@Override
+		public SuperClass createFromParcel(final Parcel in) {
+			return new SuperClass(in);
+		}
+
+		@Override
+		public SuperClass[] newArray(final int size) {
+			return new SuperClass[size];
+		}
+	};
+
+	private int num;
+
+	public SuperClass(final Parcel in) {
+		num = in.readInt();
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(final Parcel dest, final int i) {
+		dest.writeInt(num);
+	}
+}
