@@ -51,7 +51,8 @@ public abstract class AbstractTestCase extends LintDetectorTest {
 	}
 
 	@Override
-	public void setUp() {
+	public void setUp() throws Exception {
+		super.setUp();
 		getWarnings().clear();
 	}
 

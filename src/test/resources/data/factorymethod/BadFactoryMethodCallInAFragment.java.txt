@@ -1,0 +1,13 @@
+import android.support.v4.app.Fragment;
+
+public class BadFactoryMethodCallInAFragment extends Fragment {
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		getFragmentManager()
+			.beginTransaction()
+			.replace(123456, new MyFragment())
+			.commit();
+	}
+}

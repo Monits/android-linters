@@ -1,0 +1,8 @@
+import android.support.v4.app.Fragment;
+
+public class MyConfigFragment extends Fragment {
+
+	public static void configFragment(final MyFragment f) {
+		new ChildFragment();
+	}
+}
