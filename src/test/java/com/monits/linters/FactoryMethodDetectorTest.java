@@ -25,12 +25,12 @@ public class FactoryMethodDetectorTest extends AbstractTestCase {
 			+ "\n"
 			+ "public class MyStringFragment extends Fragment {\n"
 			+ "\n"
-			+ "\tpublic static MyStringFragment newInstance() {\n"
-			+ "\t\tBundle args = new Bundle();\n"
-			+ "\t\tMyStringFragment fragment = new MyStringFragment();\n"
-			+ "\t\tfragment.setArguments(args);\n"
-			+ "\t\treturn fragment;\n"
-			+ "\t}\n"
+			+ "    public static MyStringFragment newInstance() {\n"
+			+ "        Bundle args = new Bundle();\n"
+			+ "        MyStringFragment fragment = new MyStringFragment();\n"
+			+ "        fragment.setArguments(args);\n"
+			+ "        return fragment;\n"
+			+ "    }\n"
 			+ "}\n");
 
 	@Override
@@ -131,9 +131,9 @@ public class FactoryMethodDetectorTest extends AbstractTestCase {
 				+ "\n"
 				+ "public class MyStringConfigFragment extends Fragment {\n"
 				+ "\n"
-				+ "\tpublic static void configFragment(final MyStringFragment f) {\n"
-				+ "\t\tnew MyStringFragment();\n"
-				+ "\t}\n"
+				+ "    public static void configFragment(final MyStringFragment f) {\n"
+				+ "        new MyStringFragment();\n"
+				+ "    }\n"
 				+ "}");
 
 		lintProject(compile(myStringFragment, myStringConfigFragment));
