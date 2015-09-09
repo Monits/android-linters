@@ -1,0 +1,35 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class WriteOutOfOrder implements Parcelable {
+	public static final Parcelable.Creator<WriteOutOfOrder> CREATOR = new Parcelable.Creator<WriteOutOfOrder>() {
+		@Override
+		public WriteOutOfOrder createFromParcel(final Parcel in) {
+			return new WriteOutOfOrder(in);
+		}
+
+		@Override
+		public WriteOutOfOrder[] newArray(final int size) {
+			return new WriteOutOfOrder[size];
+		}
+	};
+
+	private String s1;
+	private String s2;
+
+	public WriteOutOfOrder(final Parcel in) {
+		s2 = in.readString();
+		s1 = in.readString();
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(final Parcel dest, final int i) {
+		dest.writeString(s1);
+		dest.writeString(s2);
+	}
+}

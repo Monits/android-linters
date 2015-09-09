@@ -1,0 +1,24 @@
+import android.app.Activity;
+import android.os.Bundle;
+import android.util.Log;
+
+public class ActivityWithInstanceStatesSavedButNotRestored extends Activity {
+
+	private static final String KEY_STRING_ARRAY = "KEY_STRING_ARRAY";
+	private static final String KEY_CHAR = "KEY_CHAR";
+	private String[] stringArray;
+	private char mChar;
+
+	@Override
+	protected void onSaveInstanceState(final Bundle outState) {
+		outState.putStringArray(KEY_STRING_ARRAY, stringArray);
+		outState.putChar(KEY_CHAR, mChar);
+		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	protected void onResume() {
+		Log.d("Activity", "onResume");
+		super.onResume();
+	}
+}

@@ -1,0 +1,31 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class ReadLessVariables implements Parcelable {
+	public static final Parcelable.Creator<ReadLessVariables> CREATOR = new Parcelable.Creator<ReadLessVariables>() {
+		@Override
+		public ReadLessVariables createFromParcel(final Parcel in) {
+			return new ReadLessVariables(in);
+		}
+
+		@Override
+		public ReadLessVariables[] newArray(final int size) {
+			return new ReadLessVariables[size];
+		}
+	};
+
+	private String s1;
+
+	public ReadLessVariables(final Parcel in) {
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(final Parcel dest, final int i) {
+		dest.writeString(s1);
+	}
+}

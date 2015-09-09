@@ -1,0 +1,22 @@
+import android.os.Bundle;
+import android.os.Parcelable;
+import android.app.Fragment;
+import android.util.Log;
+
+public class FragmentWithInstancesStatesSavedButNotRestored extends Fragment {
+
+	private static final String KEY_LOGIN_CLIENT = "KEY_LOGIN_CLIENT";
+	private Parcelable loginClient;
+
+	@Override
+	public void onSaveInstanceState(final Bundle outState) {
+		outState.putParcelable(KEY_LOGIN_CLIENT, loginClient);
+		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	public void onResume() {
+		Log.d("Fragment", "onResume");
+		super.onResume();
+	}
+}

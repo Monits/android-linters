@@ -1,0 +1,37 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class CorrectParcelableClass extends SuperClass {
+	public static final Parcelable.Creator<CorrectParcelableClass> CREATOR = new Parcelable.Creator<CorrectParcelableClass>() {
+		@Override
+		public CorrectParcelableClass createFromParcel(final Parcel in) {
+			return new CorrectParcelableClass(in);
+		}
+
+		@Override
+		public CorrectParcelableClass[] newArray(final int size) {
+			return new CorrectParcelableClass[size];
+		}
+	};
+
+	private String s;
+	private int num;
+
+	public CorrectParcelableClass(final Parcel in) {
+		super(in);
+		s = in.readString();
+		num = in.readInt();
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(final Parcel dest, final int i) {
+		super.writeToParcel(dest, i);
+		dest.writeString(s);
+		dest.writeInt(num);
+	}
+}

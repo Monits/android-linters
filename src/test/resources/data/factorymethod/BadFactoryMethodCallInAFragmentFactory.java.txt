@@ -1,0 +1,20 @@
+import android.app.Activity;
+import android.support.v4.app.Fragment;
+
+import java.io.Serializable;
+
+public class BadFactoryMethodCallInAFragmentFactory extends Activity {
+
+	private static class MyFragmentFactory implements FragmentFactory {
+		private static final long serialVersionUID = -8410013870874497925L;
+
+		@Override
+		public Fragment newFragment() {
+			return new MyFragment();
+		}
+	}
+
+	public interface FragmentFactory extends Serializable {
+		Fragment newFragment();
+	}
+}

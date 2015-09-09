@@ -1,0 +1,7 @@
+{
+  "project_id" : "AL",
+  "conduit_uri" : "http://ph.monits.com/",
+  "load": [
+    "/opt/arc-lint"
+  ]
+}

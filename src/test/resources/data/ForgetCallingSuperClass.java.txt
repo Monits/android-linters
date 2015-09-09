@@ -1,0 +1,34 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class ForgetCallingSuperClass extends SuperClass {
+	public static final Parcelable.Creator<ForgetCallingSuperClass> CREATOR = new Parcelable.Creator<ForgetCallingSuperClass>() {
+		@Override
+		public ForgetCallingSuperClass createFromParcel(final Parcel in) {
+			return new ForgetCallingSuperClass(in);
+		}
+
+		@Override
+		public ForgetCallingSuperClass[] newArray(final int size) {
+			return new ForgetCallingSuperClass[size];
+		}
+	};
+
+	private String s;
+
+	public ForgetCallingSuperClass(final Parcel in) {
+		super(in);
+		s = in.readString();
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(final Parcel dest, final int i) {
+		//You must call super here
+		dest.writeString(s);
+	}
+}

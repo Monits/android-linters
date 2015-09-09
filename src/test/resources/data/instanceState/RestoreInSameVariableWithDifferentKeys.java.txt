@@ -1,0 +1,37 @@
+import android.app.Activity;
+import android.os.Bundle;
+import android.util.Log;
+
+public class RestoreInSameVariableWithDifferentKeys extends Activity {
+
+	private static final String KEY_DOUBLE_3 = "KEY_DOUBLE_3";
+	private static final String KEY_DOUBLE_2 = "KEY_DOUBLE_2";
+	private static final String KEY_DOUBLE = "KEY_DOUBLE";
+	private double number;
+	private double number2;
+	private double number3;
+
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if (savedInstanceState != null) {
+			number = savedInstanceState.getDouble(KEY_DOUBLE);
+			number3 = savedInstanceState.getDouble(KEY_DOUBLE_3);
+			number = savedInstanceState.getDouble(KEY_DOUBLE_2);
+		}
+	}
+
+	@Override
+	protected void onSaveInstanceState(final Bundle outState) {
+		outState.putDouble(KEY_DOUBLE, number);
+		outState.putDouble(KEY_DOUBLE_2, number2);
+		outState.putDouble(KEY_DOUBLE_3, number3);
+		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	protected void onResume() {
+		Log.d("Activity", "onResume");
+		super.onResume();
+	}
+}

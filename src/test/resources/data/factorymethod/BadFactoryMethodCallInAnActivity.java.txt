@@ -1,0 +1,9 @@
+import android.app.Activity;
+import android.support.v4.app.Fragment;
+
+public class BadFactoryMethodCallInAnActivity extends Activity {
+
+	protected Fragment newDefaultFragment() {
+		return new ChildFragment();
+	}
+}

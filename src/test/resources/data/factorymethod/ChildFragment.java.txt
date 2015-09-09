@@ -1,0 +1,11 @@
+import android.os.Bundle;
+
+public class ChildFragment extends MyFragment {
+
+	public static ChildFragment newChildInstance() {
+		Bundle args = new Bundle();
+		final ChildFragment fragment = new ChildFragment();
+		fragment.setArguments(args);
+		return fragment;
+	}
+}
