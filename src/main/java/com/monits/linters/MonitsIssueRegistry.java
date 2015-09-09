@@ -1,6 +1,5 @@
 package com.monits.linters;
 
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,6 +17,7 @@ public class MonitsIssueRegistry extends IssueRegistry {
 		return Arrays.asList(ManifestDetector.DUPLICATE_USES_PERMISSION,
 			ParcelDetector.MISSING_OR_OUT_OF_ORDER,
 			ParcelDetector.INCOMPATIBLE_READ_WRITE_TYPE,
-			FactoryMethodDetector.USE_FACTORY_METHOD_INSTEAD_NEW_FRAGMENT);
+			FactoryMethodDetector.USE_FACTORY_METHOD_INSTEAD_NEW_FRAGMENT,
+			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES);
 	}
 }

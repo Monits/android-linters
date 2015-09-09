@@ -1,0 +1,33 @@
+import android.app.Activity;
+import android.os.Bundle;
+import android.util.Log;
+
+public class ActivityWithStatesSavedAndRestored extends Activity {
+
+	private static final String KEY_INT = "KEY_INT";
+	private static final String KEY_STRING = "KEY_STRING";
+	private String text;
+	private int number;
+
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if (savedInstanceState != null) {
+			text = savedInstanceState.getString(KEY_STRING);
+			number = savedInstanceState.getInt(KEY_INT);
+		}
+	}
+
+	@Override
+	protected void onSaveInstanceState(final Bundle outState) {
+		outState.putString(KEY_STRING, text);
+		outState.putInt(KEY_INT, number);
+		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	protected void onResume() {
+		Log.d("Activity", "onResume");
+		super.onResume();
+	}
+}
