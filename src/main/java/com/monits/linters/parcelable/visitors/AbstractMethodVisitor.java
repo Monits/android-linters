@@ -122,7 +122,7 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 				null));
 			addFieldToQueue(field);
 		} else if (!name.equals(method)
-				|| owner.equals(classNode.name)) {
+				&& owner.equals(classNode.name)) {
 			/*
 			 * The invoke special belongs to a private method
 			 */
