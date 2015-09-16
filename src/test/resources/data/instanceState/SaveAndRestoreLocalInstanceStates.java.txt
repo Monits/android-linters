@@ -1,0 +1,36 @@
+import android.content.Context;
+import android.os.Bundle;
+import android.os.Parcelable;
+import android.widget.FrameLayout;
+
+public class SaveAndRestoreLocalInstanceStates extends FrameLayout {
+
+	private static final String SUPER_STATE_KEY = "ProfilePictureView_superState";
+	private static final String PROFILE_ID_KEY = "ProfilePictureView_profileId";
+
+	private String profileId;
+
+	public SaveAndRestoreLocalInstanceStates(final Context context) {
+		super(context);
+	}
+
+	@Override
+	protected Parcelable onSaveInstanceState() {
+		Parcelable superState = super.onSaveInstanceState();
+		Bundle instanceState = new Bundle();
+		instanceState.putParcelable(SUPER_STATE_KEY, superState);
+		instanceState.putString(PROFILE_ID_KEY, profileId);
+		return instanceState;
+	}
+
+	@Override
+	protected void onRestoreInstanceState(Parcelable state) {
+		if (state.getClass() != Bundle.class) {
+			super.onRestoreInstanceState(state);
+		} else {
+			Bundle instanceState = (Bundle)state;
+			super.onRestoreInstanceState(instanceState.getParcelable(SUPER_STATE_KEY));
+			profileId = instanceState.getString(PROFILE_ID_KEY);
+		}
+	}
+}
