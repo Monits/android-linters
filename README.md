@@ -52,6 +52,7 @@ it will copy to your directory `$HOME/.android/lint/`
 ## History
 
 #v1.1.1 Fix reading private method in ParcelDetector
+InstanceStateDetector: Add temporal fix when checking for local variables
 
 #v1.1.0 Add Readme, script for download the jar and licenses.
 

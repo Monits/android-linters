@@ -13,15 +13,15 @@
  */
 package com.monits.linters;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -98,12 +98,6 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 
 	@Override
 	@Nonnull
-	public List<String> getApplicableCallOwners() {
-		return Collections.singletonList("android/os/Bundle");
-	}
-
-	@Override
-	@Nonnull
 	public int[] getApplicableAsmNodeTypes() {
 		return new int[] { AbstractInsnNode.METHOD_INSN };
 	}
@@ -112,7 +106,9 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	public void checkInstruction(@Nonnull final ClassContext context,
 			@Nonnull final ClassNode classNode, @Nonnull final MethodNode method,
 			@Nonnull final AbstractInsnNode instruction) {
-		if (instruction.getOpcode() != Opcodes.INVOKEVIRTUAL) {
+
+		if (!"android/os/Bundle".equals(((MethodInsnNode) instruction).owner)
+				|| instruction.getOpcode() != Opcodes.INVOKEVIRTUAL) {
 			return;
 		}
 
@@ -139,59 +135,35 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	@Nonnull
 	private String getBundleKey(@Nonnull final AbstractInsnNode instruction) {
 		AbstractInsnNode node = instruction;
+
 		// get the key used
 		while (!(node instanceof LdcInsnNode)) {
 			node = node.getPrevious();
 		}
+
+		// check if we have local variables
+		if (node.getPrevious() instanceof LdcInsnNode) {
+			// get the previos node to get the key
+			node = node.getPrevious();
+		}
+
 		return ((LdcInsnNode) node).cst.toString();
 	}
 
 	@Override
 	public void afterCheckFile(@Nonnull final Context context) {
 		final Map<String, AbstractInsnNode> restoredStatesToCheck = new HashMap<>(restoredStates);
-		final Set<String> fields = new HashSet<String>();
+		reportOverwritingFieldsAndInvalidTypeOnSave(context);
+		reportOverwritingFieldsAndInvalidTypeOnRestore(restoredStatesToCheck, context);
 
-		for (final Entry<String, AbstractInsnNode> savedEntry : savedStates.entrySet()) {
-			if (restoredStates.containsKey(savedEntry.getKey())) {
-				restoredStates.remove(savedEntry.getKey());
+		//TODO: remove this when fix the local variable
+		final Iterator<Entry<String, AbstractInsnNode>> it = savedStates.entrySet().iterator();
+		while (it.hasNext()) {
+			final Entry<String, AbstractInsnNode> entry = it.next();
+			if (restoredStates.containsKey(entry.getKey())) {
+				restoredStates.remove(entry.getKey());
+				it.remove();
 			}
-			// look for fields that already are being saved
-			final FieldInsnNode fieldOnSaveState = getFieldOnSaveState(savedEntry.getValue());
-			final String fieldNameSaved = fieldOnSaveState.name;
-			if (fields.contains(fieldNameSaved)) {
-				context.report(OVERWRITING_FIELDS, classContext.getLocation(savedEntry.getValue()),
-						String.format(FIELD_ALREADY_SAVED, fieldNameSaved));
-			} else {
-				fields.add(fieldNameSaved);
-			}
-
-			final String descriptor = ((MethodInsnNode) savedEntry.getValue()).desc;
-			// get the type of the second parameter
-			final String expectedType = descriptor.substring(descriptor.indexOf(';') + 1, descriptor.indexOf(')'));
-			reportSaveRestoreWithDifferentTypes(context, fieldOnSaveState, expectedType, savedEntry.getValue(),
-					SAVED_WITH_DIFERENT_TYPES);
-		}
-
-		fields.clear();
-
-		for (final Entry<String, AbstractInsnNode> restoredEntry : restoredStatesToCheck.entrySet()) {
-			if (savedStates.containsKey(restoredEntry.getKey())) {
-				savedStates.remove(restoredEntry.getKey());
-			}
-			final FieldInsnNode fieldOnRestoreState = getFieldOnRestoreState(restoredEntry.getValue());
-			// look for fields that are being overwriting
-			final String fieldNameRestore = fieldOnRestoreState.name;
-			if (fields.contains(fieldNameRestore)) {
-				context.report(OVERWRITING_FIELDS, classContext.getLocation(restoredEntry.getValue()),
-						String.format(FIELD_ALREADY_RESTORED, fieldNameRestore));
-			} else {
-				fields.add(fieldNameRestore);
-			}
-
-			final String descriptor = ((MethodInsnNode) restoredEntry.getValue()).desc;
-			final String returnType = descriptor.substring(descriptor.indexOf(')') + 1);
-			reportSaveRestoreWithDifferentTypes(context, fieldOnRestoreState, returnType, restoredEntry.getValue(),
-					RESTORED_WITH_DIFERENT_TYPES);
 		}
 
 		// report
@@ -201,6 +173,66 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		classContext = null;
 		savedStates.clear();
 		restoredStates.clear();
+	}
+
+	private void reportOverwritingFieldsAndInvalidTypeOnSave(@Nonnull final Context context) {
+		reportOverwritingFieldsAndInvalidType(savedStates, restoredStates, context,
+				false, FIELD_ALREADY_SAVED, SAVED_WITH_DIFERENT_TYPES);
+	}
+
+	private void reportOverwritingFieldsAndInvalidTypeOnRestore(
+			@Nonnull final Map<String, AbstractInsnNode> restoredStatesToCheck, @Nonnull final Context context) {
+		reportOverwritingFieldsAndInvalidType(restoredStatesToCheck, savedStates, context,
+				true, FIELD_ALREADY_RESTORED, RESTORED_WITH_DIFERENT_TYPES);
+	}
+
+	/**
+	 * Report overwriting fields and invalid types
+	 * @param statesToCheck The states to check
+	 * @param statesToRemove The states to remove
+	 * @param context The context to report the issue
+	 * @param isRestoring A flag to look for saved or restore fields
+	 * @param fieldErrorMessage The field error message to show
+	 * @param invalidTypeErrorMessage The invalid type error message to show
+	 */
+	private void reportOverwritingFieldsAndInvalidType(@Nonnull final Map<String, AbstractInsnNode> statesToCheck,
+			@Nonnull final Map<String, AbstractInsnNode> statesToRemove, @Nonnull final Context context,
+			final boolean isRestoring, @Nonnull final String fieldErrorMessage,
+			@Nonnull final String invalidTypeErrorMessage) {
+
+		final Set<String> fields = new HashSet<String>();
+		for (final Entry<String, AbstractInsnNode> entry : statesToCheck.entrySet()) {
+			if (statesToRemove.containsKey(entry.getKey())) {
+				statesToRemove.remove(entry.getKey());
+			}
+
+			final FieldInsnNode field = getField(entry.getValue(), isRestoring);
+			// TODO: check when we are saving/restoring local variables
+			if (field == null) {
+				// add this entry to prevent invalid report of missing save/restore states with local variables
+				statesToRemove.put(entry.getKey(), entry.getValue());
+				continue;
+			}
+
+			final String nameSaved = field.name;
+			if (fields.contains(nameSaved)) {
+				context.report(OVERWRITING_FIELDS, classContext.getLocation(entry.getValue()),
+						String.format(fieldErrorMessage, nameSaved));
+			} else {
+				fields.add(nameSaved);
+			}
+
+			final String descriptor = ((MethodInsnNode) entry.getValue()).desc;
+			String type;
+			if (isRestoring) {
+				type = descriptor.substring(descriptor.indexOf(')') + 1);
+			} else {
+				// get the type of the second parameter
+				type = descriptor.substring(descriptor.indexOf(';') + 1, descriptor.indexOf(')'));
+			}
+			reportSaveRestoreWithDifferentTypes(context, field, type, entry.getValue(), invalidTypeErrorMessage);
+		}
+		fields.clear();
 	}
 
 	/**
@@ -222,33 +254,27 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		}
 	}
 
-	@Nonnull
-	private FieldInsnNode getFieldOnSaveState(@Nonnull final AbstractInsnNode instruction) {
-		return getField(instruction, false);
-	}
-
-	@Nonnull
-	private FieldInsnNode getFieldOnRestoreState(@Nonnull final AbstractInsnNode instruction) {
-		return getField(instruction, true);
-	}
-
 	/**
 	 * Look for the field of the instruction
 	 * @param instruction the instruction to get the field
 	 * @param goDownInTheTree true if we want to search a putField in the tree, false if we want to search a getField.
-	 * @return The field of the instruction
+	 * @return The field of the instruction, null if not found.
 	 */
-	@Nonnull
+	@Nullable
 	private FieldInsnNode getField(@Nonnull final AbstractInsnNode instruction, final boolean goDownInTheTree) {
 		AbstractInsnNode node = instruction;
-		while (!(node instanceof FieldInsnNode)) {
+		while (node != null && !(node instanceof FieldInsnNode)) {
 			if (goDownInTheTree) {
 				node = node.getNext();
 			} else {
 				node = node.getPrevious();
 			}
+			// check that we not are analyzing other fields
+			if (node != null && node.getOpcode() == Opcodes.INVOKEVIRTUAL) {
+				return null;
+			}
 		}
-		return (FieldInsnNode) node;
+		return node == null ? null : (FieldInsnNode) node;
 	}
 
 	private void report(@Nonnull final Context context, @Nonnull final Map<String, AbstractInsnNode> states,

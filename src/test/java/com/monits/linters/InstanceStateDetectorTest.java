@@ -240,4 +240,13 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				.build()
 				));
 	}
+
+	public void testSaveAndRestoreLocalInstanceStates() throws Exception {
+		lintProject(
+				compile(file("instanceState/SaveAndRestoreLocalInstanceStates.java.txt=>"
+						+ "src/SaveAndRestoreLocalInstanceStates.java")));
+
+		assertTrue("There are unexpected warnings when checking local saved/restored states",
+				getWarnings().isEmpty());
+	}
 }
