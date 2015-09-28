@@ -13,9 +13,11 @@
  */
 package com.monits.linters;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -97,15 +99,86 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	private ClassContext classContext;
 
 	@Override
-	@Nonnull
-	public int[] getApplicableAsmNodeTypes() {
-		return new int[] { AbstractInsnNode.METHOD_INSN };
+	public List<String> getApplicableCallNames() {
+		final ArrayList<String> list = new ArrayList<String>(METHOD_SAVE_INSTANCES);
+		list.addAll(METHOD_RESTORE_INSTANCES);
+		return list;
 	}
 
 	@Override
-	public void checkInstruction(@Nonnull final ClassContext context,
-			@Nonnull final ClassNode classNode, @Nonnull final MethodNode method,
-			@Nonnull final AbstractInsnNode instruction) {
+	public void checkCall(final ClassContext context, final ClassNode classNode, final MethodNode method,
+			final MethodInsnNode call) {
+
+		Set<MethodNode> methodCalls = checkMethodCall(context, classNode, method, method, call);
+		final Set<MethodNode> container = new HashSet<MethodNode>();
+		final Set<MethodNode> methodVisited = new HashSet<MethodNode>();
+		while (!methodCalls.isEmpty()) {
+			for (final MethodNode methodNode : methodCalls) {
+				if (!methodVisited.contains(methodNode)) {
+					container.addAll(checkMethodCall(context, classNode, methodNode, method, call));
+					methodVisited.add(methodNode);
+				}
+			}
+			methodCalls = new HashSet<MethodNode>(container);
+			container.clear();
+		}
+		super.checkCall(context, classNode, method, call);
+	}
+
+	/**
+	 * Walk the method looking for a method or methods that have a bundle as parameter.
+	 * If the node analyzed is not a method we check the instruction
+	 *
+	 * @param context The context
+	 * @param classNode The classNode to find the methods
+	 * @param methodToIterate The method to iterate the nodes
+	 * @param saveRestoreMethod The originary method
+	 * @param call The node that match with the one of the applicable call names
+	 *
+	 * @return The methods that have a bundle as param
+	 */
+	@Nonnull
+	private Set<MethodNode> checkMethodCall(@Nonnull final ClassContext context, @Nonnull final ClassNode classNode,
+			@Nonnull final MethodNode methodToIterate, @Nonnull final MethodNode saveRestoreMethod,
+			@Nonnull final MethodInsnNode call) {
+		final Set<MethodNode> methods = new HashSet<MethodNode>();
+
+		final AbstractInsnNode[] instructions = methodToIterate.instructions.toArray();
+		for (final AbstractInsnNode abstractInsnNode : instructions) {
+			if (abstractInsnNode instanceof MethodInsnNode
+					// Ignore same method (ej super.onCreate(...))
+					&& !((MethodInsnNode) abstractInsnNode).name.equals(call.name)) {
+				final String descriptor = ((MethodInsnNode) abstractInsnNode).desc;
+				// check if the parameter has a bundle paramenter
+				if (descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'))
+						.contains("Landroid/os/Bundle;")) {
+					for (final MethodNode element : (List<MethodNode>) classNode.methods) {
+						// find the methodNode
+						if (element instanceof MethodNode
+								&& element.name.equals(((MethodInsnNode) abstractInsnNode).name)) {
+							methods.add(element);
+						}
+					}
+				} else {
+					//we have something that we can pass to checkInstruction
+					checkInstruction(context, classNode, saveRestoreMethod, abstractInsnNode);
+				}
+			}
+		}
+		return methods;
+	}
+
+	/**
+	 * Process a given instruction node
+	 *
+	 * @param context The context
+	 * @param classNode The class node to generate the reports
+	 * @param originaryMethod The originary method
+	 * @param instruction The instruction to check
+	 */
+	@Override
+	public void checkInstruction(@Nonnull final ClassContext context, @Nonnull final ClassNode classNode,
+			@Nonnull final MethodNode originaryMethod, @Nonnull final AbstractInsnNode instruction) {
 
 		if (!"android/os/Bundle".equals(((MethodInsnNode) instruction).owner)
 				|| instruction.getOpcode() != Opcodes.INVOKEVIRTUAL) {
@@ -116,7 +189,18 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			classContext = context;
 		}
 
-		if (METHOD_SAVE_INSTANCES.contains(method.name)) {
+		// ignore those method that no have params
+		final String descriptor = ((MethodInsnNode) instruction).desc;
+		if (descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')')).isEmpty()) {
+			return;
+		}
+
+		// Ignore containsKey method
+		if ("containsKey".equals(((MethodInsnNode) instruction).name)) {
+			return;
+		}
+
+		if (METHOD_SAVE_INSTANCES.contains(originaryMethod.name)) {
 			final String bundleKey = getBundleKey(instruction);
 			if (savedStates.containsKey(bundleKey)) {
 				context.report(OVERWRITING_INSTANCE_STATES, context.getLocation(instruction),
@@ -124,12 +208,10 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			} else {
 				savedStates.put(bundleKey, instruction);
 			}
-		} else if (METHOD_RESTORE_INSTANCES.contains(method.name)) {
+		} else if (METHOD_RESTORE_INSTANCES.contains(originaryMethod.name)) {
 			final String bundleKey = getBundleKey(instruction);
 			restoredStates.put(bundleKey, instruction);
 		}
-
-		super.checkInstruction(context, classNode, method, instruction);
 	}
 
 	@Nonnull
@@ -157,10 +239,11 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		reportOverwritingFieldsAndInvalidTypeOnRestore(restoredStatesToCheck, context);
 
 		//TODO: remove this when fix the local variable
-		final Iterator<Entry<String, AbstractInsnNode>> it = savedStates.entrySet().iterator();
+		final Iterator<Entry<String, AbstractInsnNode>> it = restoredStatesToCheck.entrySet().iterator();
 		while (it.hasNext()) {
 			final Entry<String, AbstractInsnNode> entry = it.next();
-			if (restoredStates.containsKey(entry.getKey())) {
+			if (savedStates.containsKey(entry.getKey())) {
+				savedStates.remove(entry.getKey());
 				restoredStates.remove(entry.getKey());
 				it.remove();
 			}
@@ -247,6 +330,16 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			@Nonnull final String expectedtype, @Nonnull final AbstractInsnNode node,
 			@Nonnull final String message) {
 		final String methodName = ((MethodInsnNode) node).name;
+
+		// We are ignoring Serializable and Parcelable, this is due the code not compile
+		// if we are trying to put an object that no implements Serializable or Pracelable
+		if ("Ljava/io/Serializable;".equals(expectedtype)
+				|| "Landroid/io/Parcelable;".equals(expectedtype)
+				// Ignore Object too since all type extends from Object
+				|| "Ljava/lang/Object;".equals(expectedtype)) {
+			return;
+		}
+
 		// check the field type with the expected type
 		if (!field.desc.equals(expectedtype)) {
 			context.report(INVALID_TYPE, classContext.getLocation(node),
@@ -270,7 +363,9 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				node = node.getPrevious();
 			}
 			// check that we not are analyzing other fields
-			if (node != null && node.getOpcode() == Opcodes.INVOKEVIRTUAL) {
+			if (node != null && (node.getOpcode() == Opcodes.INVOKEVIRTUAL
+					|| node.getOpcode() == Opcodes.GETSTATIC
+					|| goDownInTheTree && node.getOpcode() != Opcodes.PUTFIELD)) {
 				return null;
 			}
 		}
