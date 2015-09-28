@@ -49,7 +49,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 	public void testActivityWithStatesSavedAndRestored() throws Exception {
 		lintProject(
 			compile(
-				file("instanceState/ActivityWithStatesSavedAndRestored.java.txt=>"
+				file("instanceState/R.java.txt=>src/R.java",
+						"instanceState/ActivityWithStatesSavedAndRestored.java.txt=>"
 						+ "src/ActivityWithStatesSavedAndRestored.java")
 				));
 
@@ -235,7 +236,7 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 			getWarnings(),
 			Matchers.contains(new WarningMatcherBuilder()
 				.fileName("RestoreVariableWithDifferentTypes.java")
-				.line(15)
+				.line(18)
 				.message(String.format(RESTORED_WITH_DIFERENT_TYPES, "getChar", "C", "number", "I"))
 				.build()
 				));
@@ -247,6 +248,26 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/SaveAndRestoreLocalInstanceStates.java")));
 
 		assertTrue("There are unexpected warnings when checking local saved/restored states",
+				getWarnings().isEmpty());
+	}
+
+	public void testCFGAnalysis() throws Exception {
+		lintProject(
+				compile(file("instanceState/CFGAnalysis.java.txt=>"
+						+ "src/CFGAnalysis.java")));
+
+		assertTrue("There are unexpected warnings when checking CFG",
+				getWarnings().isEmpty());
+	}
+
+	public void testRestoreFromExtras() throws Exception {
+		lintProject(
+				compile(file("instanceState/R.java.txt=>"
+						+ "src/R.java",
+						"instanceState/RestoreFromExtras.java.txt=>"
+						+ "src/RestoreFromExtras.java")));
+
+		assertTrue("There are unexpected warnings when checking data from extras",
 				getWarnings().isEmpty());
 	}
 }
