@@ -51,6 +51,8 @@ it will copy to your directory `$HOME/.android/lint/`
 
 ## History
 
+#v1.1.2 Fix checking for local variables in InstanceStateDetector
+
 #v1.1.1 Fix reading private method in ParcelDetector
 InstanceStateDetector: Add temporal fix when checking for local variables
 

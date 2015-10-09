@@ -14,6 +14,8 @@
 package com.monits.linters;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,9 +31,13 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 import com.android.tools.lint.detector.api.Category;
 import com.android.tools.lint.detector.api.ClassContext;
@@ -143,6 +149,17 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			@Nonnull final MethodInsnNode call) {
 		final Set<MethodNode> methods = new HashSet<MethodNode>();
 
+		if (methodToIterate.localVariables != null) {
+			// We are sorting 'methodToIterate.localVariables' because the index of the each item is always
+			// a position of the Local Variable Table, but sometimes those index do not match with the position.
+			Collections.sort(methodToIterate.localVariables, new Comparator<LocalVariableNode>() {
+				@Override
+				public int compare(final LocalVariableNode o1, final LocalVariableNode o2) {
+					return o1.index - o2.index;
+				}
+			});
+		}
+
 		final AbstractInsnNode[] instructions = methodToIterate.instructions.toArray();
 		for (final AbstractInsnNode abstractInsnNode : instructions) {
 			if (abstractInsnNode instanceof MethodInsnNode
@@ -161,7 +178,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 					}
 				} else {
 					//we have something that we can pass to checkInstruction
-					checkInstruction(context, classNode, saveRestoreMethod, abstractInsnNode);
+					checkInstruction(context, classNode, methodToIterate, saveRestoreMethod, abstractInsnNode);
 				}
 			}
 		}
@@ -173,12 +190,13 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	 *
 	 * @param context The context
 	 * @param classNode The class node to generate the reports
+	 * @param currentMethod The current method to get the local variables
 	 * @param originaryMethod The originary method
 	 * @param instruction The instruction to check
 	 */
-	@Override
 	public void checkInstruction(@Nonnull final ClassContext context, @Nonnull final ClassNode classNode,
-			@Nonnull final MethodNode originaryMethod, @Nonnull final AbstractInsnNode instruction) {
+			@Nonnull final MethodNode currentMethod, @Nonnull final MethodNode originaryMethod,
+			@Nonnull final AbstractInsnNode instruction) {
 
 		if (!"android/os/Bundle".equals(((MethodInsnNode) instruction).owner)
 				|| instruction.getOpcode() != Opcodes.INVOKEVIRTUAL) {
@@ -200,6 +218,12 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			return;
 		}
 
+		// ignore getIntent().getExtras() or getArgument() bundle
+		final VarInsnNode ownerNode = getOwnerNode(instruction, METHOD_SAVE_INSTANCES.contains(originaryMethod.name));
+		if (shouldIgnoreBundle((LocalVariableNode) currentMethod.localVariables.get(ownerNode.var))) {
+			return;
+		}
+
 		if (METHOD_SAVE_INSTANCES.contains(originaryMethod.name)) {
 			final String bundleKey = getBundleKey(instruction);
 			if (savedStates.containsKey(bundleKey)) {
@@ -212,6 +236,47 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			final String bundleKey = getBundleKey(instruction);
 			restoredStates.put(bundleKey, instruction);
 		}
+	}
+
+	/**
+	 * Check if the bundle variable is from getIntent().getExtras() or getArgument() method.
+	 * @param localVariableNode The variable to check
+	 */
+	private boolean shouldIgnoreBundle(@Nonnull final LocalVariableNode localVariableNode) {
+		final LabelNode startLabelNode = localVariableNode.start;
+		AbstractInsnNode node = startLabelNode;
+
+		while (node != null && !(node instanceof MethodInsnNode)) {
+			node = node.getPrevious();
+		}
+		return node != null && "()Landroid/os/Bundle;".equals(((MethodInsnNode) node).desc)
+				&& ("getArguments".equals(((MethodInsnNode) node).name)
+				|| "android/content/Intent".equals(((MethodInsnNode) node).owner)
+				&& "getExtras".equals(((MethodInsnNode) node).name));
+	}
+
+	/**
+	 * Find the owner variable of this instruction
+	 * @param instruction The instruction
+	 * @param isASaveMethod A flag to know if it is a save or restore method
+	 * @return Returns the owner variable
+	 */
+	@Nonnull
+	private VarInsnNode getOwnerNode(@Nonnull final AbstractInsnNode instruction, final boolean isASaveMethod) {
+		// the varNode have the index that we can match with the local variable table from the method.
+		AbstractInsnNode varNode = instruction;
+		while (!(varNode instanceof VarInsnNode)) {
+			varNode = varNode.getPrevious();
+		}
+		if (isASaveMethod) {
+			varNode = varNode.getPrevious();
+			// if we are saving a state we need to go until the LineNumberNode and then get the varInsnNode
+			while (!(varNode instanceof LineNumberNode)) {
+				varNode = varNode.getPrevious();
+			}
+			varNode = varNode.getNext();
+		}
+		return (VarInsnNode) varNode;
 	}
 
 	@Nonnull
@@ -238,12 +303,11 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		reportOverwritingFieldsAndInvalidTypeOnSave(context);
 		reportOverwritingFieldsAndInvalidTypeOnRestore(restoredStatesToCheck, context);
 
-		//TODO: remove this when fix the local variable
-		final Iterator<Entry<String, AbstractInsnNode>> it = restoredStatesToCheck.entrySet().iterator();
+		// if we have the same key in both list these are states that not are restored or saved in a field
+		final Iterator<Entry<String, AbstractInsnNode>> it = savedStates.entrySet().iterator();
 		while (it.hasNext()) {
 			final Entry<String, AbstractInsnNode> entry = it.next();
-			if (savedStates.containsKey(entry.getKey())) {
-				savedStates.remove(entry.getKey());
+			if (restoredStates.containsKey(entry.getKey())) {
 				restoredStates.remove(entry.getKey());
 				it.remove();
 			}
@@ -290,9 +354,8 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			}
 
 			final FieldInsnNode field = getField(entry.getValue(), isRestoring);
-			// TODO: check when we are saving/restoring local variables
 			if (field == null) {
-				// add this entry to prevent invalid report of missing save/restore states with local variables
+				// we are restoring or saving a key locally
 				statesToRemove.put(entry.getKey(), entry.getValue());
 				continue;
 			}
@@ -356,6 +419,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	@Nullable
 	private FieldInsnNode getField(@Nonnull final AbstractInsnNode instruction, final boolean goDownInTheTree) {
 		AbstractInsnNode node = instruction;
+		boolean isFirstMatchField = true;
 		while (node != null && !(node instanceof FieldInsnNode)) {
 			if (goDownInTheTree) {
 				node = node.getNext();
@@ -363,13 +427,51 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				node = node.getPrevious();
 			}
 			// check that we not are analyzing other fields
-			if (node != null && (node.getOpcode() == Opcodes.INVOKEVIRTUAL
-					|| node.getOpcode() == Opcodes.GETSTATIC
-					|| goDownInTheTree && node.getOpcode() != Opcodes.PUTFIELD)) {
+			if (node != null && isAnotherField(goDownInTheTree, node, isFirstMatchField)) {
 				return null;
+			}
+			// we find that the field corresponds to the instruction, then no other field opcode must match
+			if (node != null && (node.getOpcode() == Opcodes.PUTFIELD || node.getOpcode() == Opcodes.GETFIELD)) {
+				isFirstMatchField = false;
 			}
 		}
 		return node == null ? null : (FieldInsnNode) node;
+	}
+
+	/**
+	 * Check that we are not analyzing another saved or restored field
+	 * @param goDownInTheTree True if we are finding a PUTFIELD, false if we are finding a GETFIELD
+	 * @param node The node to check
+	 * @param isFirstMatchField A flag to know if already we find a FIELD
+	 * @return True if the node is from other save or restore field
+	 */
+	private boolean isAnotherField(@Nonnull final boolean goDownInTheTree, @Nonnull final AbstractInsnNode node,
+			@Nonnull final boolean isFirstMatchField) {
+		// When we are restoring or saving a state in a field, the first opcode that we are going to find
+		// should be a PUTFIELD or GETFIELD, but not necessarily is the next opcode, so
+		// we need to check that the instruction is not another save or restore instruction too.
+		return node.getOpcode() == Opcodes.INVOKEVIRTUAL || node.getOpcode() == Opcodes.GETSTATIC
+				// if the first opcode is a Field we need to ignore it, because we are restoring or saving a state
+				// but for example when we are casting a restored field, the next opcode is a checkcast
+				// invokevirtual // Method android/os/Bundle
+				//							.getSerializable:(Ljava/lang/String;)Ljava/io/Serializable;
+				// checkcast     // class java/util/HashMap
+				// putfield      // Field pendingAttachments:Ljava/util/HashMap;
+				|| goDownInTheTree && (!isFirstMatchField && node.getOpcode() == Opcodes.PUTFIELD
+				// FIXME: Check if the state is restored in a local variable and then into a instance variable.
+				// if we find an ALOAD or an ASTORE instruction when we are restoring a state
+				// we need to ignore those states, because they are restoring locally
+				// for example if the state is restored in a local variable we have
+				// invokevirtual // Method android/os/Bundle
+				//							.getSerializable:(Ljava/lang/String;)Ljava/io/Serializable;
+				// astore
+				// another example, if it is passed to a method we have
+				// invokevirtual // Method android/os/Bundle
+				//							.getSerializable:(Ljava/lang/String;)Ljava/io/Serializable;
+				// aload
+				|| node.getOpcode() == Opcodes.ALOAD || node.getOpcode() == Opcodes.ASTORE)
+				// check for saving states in the same way that we check a restored states but going up in the tree.
+				|| !goDownInTheTree && !isFirstMatchField && node.getOpcode() == Opcodes.GETFIELD;
 	}
 
 	private void report(@Nonnull final Context context, @Nonnull final Map<String, AbstractInsnNode> states,
