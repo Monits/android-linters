@@ -256,8 +256,14 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				compile(file("instanceState/CFGAnalysis.java.txt=>"
 						+ "src/CFGAnalysis.java")));
 
-		assertTrue("There are unexpected warnings when checking CFG",
-				getWarnings().isEmpty());
+		assertThat("Failed to check a save or restore state while doing a control flow scan",
+				getWarnings(),
+				Matchers.contains(new WarningMatcherBuilder()
+					.fileName("CFGAnalysis.java")
+					.line(51)
+					.message(String.format(SAVED_BUT_NEVER_RESTORED, "PENDING_ATTACHMENTS"))
+					.build()
+				));
 	}
 
 	public void testRestoreFromExtras() throws Exception {
@@ -268,6 +274,15 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/RestoreFromExtras.java")));
 
 		assertTrue("There are unexpected warnings when checking data from extras",
+				getWarnings().isEmpty());
+	}
+
+	public void testFragmentWithLocalStates() throws Exception {
+		lintProject(
+				compile(file("instanceState/FragmentWithLocalStates.java.txt=>"
+						+ "src/FragmentWithLocalStates.java")));
+
+		assertTrue("There are unexpected warning when check local states in the fragment",
 				getWarnings().isEmpty());
 	}
 }
