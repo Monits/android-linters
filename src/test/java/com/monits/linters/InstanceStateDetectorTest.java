@@ -260,7 +260,7 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				getWarnings(),
 				Matchers.contains(new WarningMatcherBuilder()
 					.fileName("CFGAnalysis.java")
-					.line(51)
+					.line(46)
 					.message(String.format(SAVED_BUT_NEVER_RESTORED, "PENDING_ATTACHMENTS"))
 					.build()
 				));
@@ -285,4 +285,14 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 		assertTrue("There are unexpected warning when check local states in the fragment",
 				getWarnings().isEmpty());
 	}
+
+	public void testRestoreStateLocallyAndThenInAField() throws Exception {
+		lintProject(
+				compile(file("instanceState/RestoreStateLocallyAndThenInAField.java.txt=>"
+						+ "src/RestoreStateLocallyAndThenInAField.java")));
+
+		assertTrue("There are unexpected warning when restore a state locally and then in a field",
+				getWarnings().isEmpty());
+	}
+
 }
