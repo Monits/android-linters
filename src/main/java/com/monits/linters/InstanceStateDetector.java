@@ -419,59 +419,32 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	@Nullable
 	private FieldInsnNode getField(@Nonnull final AbstractInsnNode instruction, final boolean goDownInTheTree) {
 		AbstractInsnNode node = instruction;
-		boolean isFirstMatchField = true;
-		while (node != null && !(node instanceof FieldInsnNode)) {
-			if (goDownInTheTree) {
-				node = node.getNext();
-			} else {
-				node = node.getPrevious();
-			}
+		while (node != null) {
+			node = goDownInTheTree ? node.getNext() : node.getPrevious();
 			// check that we not are analyzing other fields
-			if (node != null && isAnotherField(goDownInTheTree, node, isFirstMatchField)) {
+			if (node != null && isAnotherField(node)) {
 				return null;
 			}
-			// we find that the field corresponds to the instruction, then no other field opcode must match
-			if (node != null && (node.getOpcode() == Opcodes.PUTFIELD || node.getOpcode() == Opcodes.GETFIELD)) {
-				isFirstMatchField = false;
+			// find the field that are store our variable
+			if (node != null && (goDownInTheTree && node.getOpcode() == Opcodes.PUTFIELD
+					|| !goDownInTheTree && node.getOpcode() == Opcodes.GETFIELD) && node instanceof FieldInsnNode) {
+				return (FieldInsnNode) node;
 			}
 		}
-		return node == null ? null : (FieldInsnNode) node;
+		return null;
 	}
 
 	/**
 	 * Check that we are not analyzing another saved or restored field
-	 * @param goDownInTheTree True if we are finding a PUTFIELD, false if we are finding a GETFIELD
 	 * @param node The node to check
-	 * @param isFirstMatchField A flag to know if already we find a FIELD
 	 * @return True if the node is from other save or restore field
 	 */
-	private boolean isAnotherField(@Nonnull final boolean goDownInTheTree, @Nonnull final AbstractInsnNode node,
-			@Nonnull final boolean isFirstMatchField) {
+	private boolean isAnotherField(@Nonnull final AbstractInsnNode node) {
 		// When we are restoring or saving a state in a field, the first opcode that we are going to find
 		// should be a PUTFIELD or GETFIELD, but not necessarily is the next opcode, so
 		// we need to check that the instruction is not another save or restore instruction too.
-		return node.getOpcode() == Opcodes.INVOKEVIRTUAL || node.getOpcode() == Opcodes.GETSTATIC
-				// if the first opcode is a Field we need to ignore it, because we are restoring or saving a state
-				// but for example when we are casting a restored field, the next opcode is a checkcast
-				// invokevirtual // Method android/os/Bundle
-				//							.getSerializable:(Ljava/lang/String;)Ljava/io/Serializable;
-				// checkcast     // class java/util/HashMap
-				// putfield      // Field pendingAttachments:Ljava/util/HashMap;
-				|| goDownInTheTree && (!isFirstMatchField && node.getOpcode() == Opcodes.PUTFIELD
-				// FIXME: Check if the state is restored in a local variable and then into a instance variable.
-				// if we find an ALOAD or an ASTORE instruction when we are restoring a state
-				// we need to ignore those states, because they are restoring locally
-				// for example if the state is restored in a local variable we have
-				// invokevirtual // Method android/os/Bundle
-				//							.getSerializable:(Ljava/lang/String;)Ljava/io/Serializable;
-				// astore
-				// another example, if it is passed to a method we have
-				// invokevirtual // Method android/os/Bundle
-				//							.getSerializable:(Ljava/lang/String;)Ljava/io/Serializable;
-				// aload
-				|| node.getOpcode() == Opcodes.ALOAD || node.getOpcode() == Opcodes.ASTORE)
-				// check for saving states in the same way that we check a restored states but going up in the tree.
-				|| !goDownInTheTree && !isFirstMatchField && node.getOpcode() == Opcodes.GETFIELD;
+		return node.getOpcode() == Opcodes.INVOKEVIRTUAL && "android/os/Bundle".equals(((MethodInsnNode) node).owner)
+				|| node.getOpcode() == Opcodes.GETSTATIC;
 	}
 
 	private void report(@Nonnull final Context context, @Nonnull final Map<String, AbstractInsnNode> states,
