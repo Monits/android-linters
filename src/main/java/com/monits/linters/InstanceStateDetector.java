@@ -219,8 +219,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		}
 
 		// ignore getIntent().getExtras() or getArgument() bundle
-		final VarInsnNode ownerNode = getOwnerNode(instruction, METHOD_SAVE_INSTANCES.contains(originaryMethod.name));
-		if (shouldIgnoreBundle((LocalVariableNode) currentMethod.localVariables.get(ownerNode.var))) {
+		if (shouldIgnoreBundle(currentMethod, originaryMethod, instruction)) {
 			return;
 		}
 
@@ -239,12 +238,38 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	}
 
 	/**
-	 * Check if the bundle variable is from getIntent().getExtras() or getArgument() method.
-	 * @param localVariableNode The variable to check
+	 * Check if we can ignore the bundle
+	 * @param currentMethod the method to get the localvariables
+	 * @param originaryMethod the originary method to get the name
+	 * @param instruction the instruction to check
 	 */
-	private boolean shouldIgnoreBundle(@Nonnull final LocalVariableNode localVariableNode) {
-		final LabelNode startLabelNode = localVariableNode.start;
-		AbstractInsnNode node = startLabelNode;
+	private boolean shouldIgnoreBundle(@Nonnull final MethodNode currentMethod,
+			@Nonnull final MethodNode originaryMethod, @Nonnull final AbstractInsnNode instruction) {
+		// check if we can ignore getIntent().getExtras() or getArgument() directly
+		final boolean result = checkBundleFrom(instruction);
+
+		// if we cant ignore getIntent().getExtras() or getArgument() directly
+		// we need to check if it come from a local variable
+		if (!result) {
+			final VarInsnNode ownerNode = getOwnerNode(instruction,
+					METHOD_SAVE_INSTANCES.contains(originaryMethod.name));
+			return checkBundleFrom(currentMethod.localVariables.get(ownerNode.var));
+		}
+		return result;
+	}
+
+	/**
+	 * Check if the bundle variable is from getIntent().getExtras() or getArgument() method.
+	 * @param element The element node to check
+	 */
+	private boolean checkBundleFrom(@Nonnull final Object element) {
+		AbstractInsnNode node = null;
+		if (element instanceof MethodInsnNode) {
+			node = ((MethodInsnNode) element).getPrevious();
+		} else if (element instanceof LocalVariableNode) {
+			final LabelNode startLabelNode = ((LocalVariableNode) element).start;
+			node = startLabelNode;
+		}
 
 		while (node != null && !(node instanceof MethodInsnNode)) {
 			node = node.getPrevious();
