@@ -295,4 +295,15 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				getWarnings().isEmpty());
 	}
 
+	public void testSaveRestoreLocallyStatesInAListFragment() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/SaveRestoreLocallyStatesInAListFragment.java.txt=>"
+						+ "src/SaveRestoreLocallyStatesInAListFragment.java")
+				));
+
+		assertTrue("There are unexpected warnings when save and restore states locally in a ListFragment",
+				getWarnings().isEmpty());
+	}
+
 }

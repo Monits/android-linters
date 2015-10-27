@@ -451,12 +451,28 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				return null;
 			}
 			// find the field that are store our variable
-			if (node != null && (goDownInTheTree && node.getOpcode() == Opcodes.PUTFIELD
-					|| !goDownInTheTree && node.getOpcode() == Opcodes.GETFIELD) && node instanceof FieldInsnNode) {
+			if (node != null
+					&& (goDownInTheTree && node.getOpcode() == Opcodes.PUTFIELD
+					|| !goDownInTheTree && node.getOpcode() == Opcodes.GETFIELD && !ignoreInvokeVirtual(node))
+					&& node instanceof FieldInsnNode) {
 				return (FieldInsnNode) node;
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Check the InvokeVirtual opcode
+	 * @param node the node to check the opcode
+	 * @return true if the invokeVirtual should be ignored, false otherwise
+	 */
+	private boolean ignoreInvokeVirtual(@Nonnull final AbstractInsnNode node) {
+		// If we find a Field we need to check if it is invoking a method
+		// due to that invokeVirtual opcodes represents a type of call method
+		// we need to ignore if the invokeVirtual is not from a bundle
+		final AbstractInsnNode next = node.getNext();
+		return next.getOpcode() == Opcodes.INVOKEVIRTUAL
+				&& !"android/os/Bundle".equals(((MethodInsnNode) next).owner);
 	}
 
 	/**
