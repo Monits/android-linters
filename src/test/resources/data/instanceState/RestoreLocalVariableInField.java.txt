@@ -1,0 +1,55 @@
+import android.content.Context;
+import android.os.Bundle;
+import android.app.Fragment;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+
+public class RestoreLocalVariableInField extends Fragment {
+
+	private static final String STORIES_KEY = "STORIES";
+
+	private MyAdapter adapter;
+
+	public static RestoreLocalVariableInField newInstance(final List<Object> stories) {
+		final RestoreLocalVariableInField storiesFragment = new RestoreLocalVariableInField();
+		final Bundle arguments = new Bundle();
+		final ArrayList<Object> myStories = new ArrayList<Object>();
+		myStories.addAll(stories);
+		arguments.putSerializable(STORIES_KEY, myStories);
+		storiesFragment.setArguments(arguments);
+		return storiesFragment;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+		final List<Object> stories;
+		if (savedInstanceState == null) {
+			stories = (List<Object>) getArguments().getSerializable(STORIES_KEY);
+		} else {
+			stories = (List<Object>) savedInstanceState.getSerializable(STORIES_KEY);
+		}
+
+		adapter = new MyAdapter(getActivity(), new ArrayList<Object>((List<Object>) stories));
+	}
+
+	@Override
+	public void onSaveInstanceState(final Bundle outState) {
+		super.onSaveInstanceState(outState);
+		outState.putSerializable(STORIES_KEY, (Serializable) adapter.getWorkItems());
+	}
+
+	private class MyAdapter {
+		public MyAdapter(final Context context, final ArrayList<Object> objects) {
+		}
+		public Object getWorkItems() {
+			return Collections.emptyList();
+		}
+	}
+}

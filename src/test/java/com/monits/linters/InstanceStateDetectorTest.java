@@ -306,4 +306,14 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				getWarnings().isEmpty());
 	}
 
+	public void testRestoreLocalVariableInField() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/RestoreLocalVariableInField.java.txt=>"
+						+ "src/RestoreLocalVariableInField.java")
+				));
+
+		assertTrue("There are unexpected warnings when restore a state locally and then in a Field",
+				getWarnings().isEmpty());
+	}
 }
