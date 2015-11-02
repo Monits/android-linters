@@ -31,6 +31,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
@@ -451,10 +452,14 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				return null;
 			}
 			// find the field that are store our variable
-			if (node != null
+			if (node instanceof FieldInsnNode
 					&& (goDownInTheTree && node.getOpcode() == Opcodes.PUTFIELD
-					|| !goDownInTheTree && node.getOpcode() == Opcodes.GETFIELD && !ignoreInvokeVirtual(node))
-					&& node instanceof FieldInsnNode) {
+					|| !goDownInTheTree && node.getOpcode() == Opcodes.GETFIELD && !ignoreInvokeVirtual(node)
+					// Ignore if we are reading fields from an if statement
+					&& !(node.getNext() instanceof JumpInsnNode))
+					// Ignore fields if a new instance is being set to it
+					&& !(node.getPrevious().getOpcode() == Opcodes.INVOKESPECIAL
+					&& "<init>".equals(((MethodInsnNode) node.getPrevious()).name))) {
 				return (FieldInsnNode) node;
 			}
 		}
