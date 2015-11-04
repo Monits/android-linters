@@ -1,0 +1,24 @@
+import android.support.v4.app.Fragment;
+import android.annotation.SuppressLint;
+
+public class TestIgnoreNewFragmentInstance extends Fragment {
+
+	@Override
+	@SuppressLint("UseFactoryMethodInsteadNewFragment")
+	public void onResume() {
+		super.onResume();
+		getFragmentManager()
+			.beginTransaction()
+			.replace(123456, new MyFragment())
+			.commit();
+	}
+
+	@Override
+	public void onStart() {
+		super.onStart();
+		getFragmentManager()
+			.beginTransaction()
+			.replace(123456, new MyFragment())
+			.commit();
+	}
+}
