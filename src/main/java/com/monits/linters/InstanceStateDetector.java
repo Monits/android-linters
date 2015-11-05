@@ -49,6 +49,7 @@ import com.android.tools.lint.detector.api.Issue;
 import com.android.tools.lint.detector.api.Scope;
 import com.android.tools.lint.detector.api.Severity;
 import com.google.common.collect.Sets;
+import com.monits.linters.instancestate.holder.InstanceStateHolder;
 
 /**
  * Check for missing instances states that are not saved or restored
@@ -67,7 +68,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	public static final String RESTORED_WITH_DIFERENT_TYPES =
 			"The field %s is a %s type, but the method %s is returning a %s type";
 
-	public static final Issue MISSING_SAVED_INSTANCE_STATES = Issue.create("savedInstanceState",
+	public static final Issue MISSING_SAVED_INSTANCE_STATES = Issue.create("missingSavedOrRestoredInstanceState",
 			"Missing saved or restored instance states",
 			"This will check for missing saved or restored instances states",
 			Category.CORRECTNESS, 6, Severity.ERROR,
@@ -101,8 +102,10 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 					// Fragment methods
 					"onActivityCreated", "onCreateView", "onViewCreated");
 
-	private final Map<String, AbstractInsnNode> savedStates = new HashMap<String, AbstractInsnNode>();
-	private final Map<String, AbstractInsnNode> restoredStates = new HashMap<String, AbstractInsnNode>();
+	private static final String ANDROID_BUNDLE_PATH = "android/os/Bundle";
+
+	private final Map<String, InstanceStateHolder> savedStates = new HashMap<String, InstanceStateHolder>();
+	private final Map<String, InstanceStateHolder> restoredStates = new HashMap<String, InstanceStateHolder>();
 	private ClassContext classContext;
 
 	@Override
@@ -199,7 +202,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			@Nonnull final MethodNode currentMethod, @Nonnull final MethodNode originaryMethod,
 			@Nonnull final AbstractInsnNode instruction) {
 
-		if (!"android/os/Bundle".equals(((MethodInsnNode) instruction).owner)
+		if (!ANDROID_BUNDLE_PATH.equals(((MethodInsnNode) instruction).owner)
 				|| instruction.getOpcode() != Opcodes.INVOKEVIRTUAL) {
 			return;
 		}
@@ -227,14 +230,14 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		if (METHOD_SAVE_INSTANCES.contains(originaryMethod.name)) {
 			final String bundleKey = getBundleKey(instruction);
 			if (savedStates.containsKey(bundleKey)) {
-				context.report(OVERWRITING_INSTANCE_STATES, context.getLocation(instruction),
-						String.format(ALREADY_SAVED, bundleKey));
+				context.report(OVERWRITING_INSTANCE_STATES, currentMethod, instruction,
+						context.getLocation(instruction), String.format(ALREADY_SAVED, bundleKey));
 			} else {
-				savedStates.put(bundleKey, instruction);
+				savedStates.put(bundleKey, new InstanceStateHolder(instruction, currentMethod));
 			}
 		} else if (METHOD_RESTORE_INSTANCES.contains(originaryMethod.name)) {
 			final String bundleKey = getBundleKey(instruction);
-			restoredStates.put(bundleKey, instruction);
+			restoredStates.put(bundleKey, new InstanceStateHolder(instruction, currentMethod));
 		}
 	}
 
@@ -325,14 +328,22 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 
 	@Override
 	public void afterCheckFile(@Nonnull final Context context) {
-		final Map<String, AbstractInsnNode> restoredStatesToCheck = new HashMap<>(restoredStates);
-		reportOverwritingFieldsAndInvalidTypeOnSave(context);
-		reportOverwritingFieldsAndInvalidTypeOnRestore(restoredStatesToCheck, context);
+		if (!(context instanceof ClassContext)) {
+			throw new AssertionError("The context must be a ClassContext to allow limit the scope of the issue");
+		}
+		final HashMap<String, InstanceStateHolder> restoredStatesToCheck = new HashMap<>(restoredStates);
+		// As the afterCheckFile documentation says "When this method is called at the end of checking an XML file,
+		// the context is guaranteed to be an instance of XmlContext, and similarly for a Java source file,
+		// the context will be a JavaContext and so on", so we can cast to ClassContext
+		// since we are analyzing .class files
+		final ClassContext cContext = (ClassContext) context;
+		reportOverwritingFieldsAndInvalidTypeOnSave(cContext);
+		reportOverwritingFieldsAndInvalidTypeOnRestore(restoredStatesToCheck, cContext);
 
 		// if we have the same key in both list these are states that not are restored or saved in a field
-		final Iterator<Entry<String, AbstractInsnNode>> it = savedStates.entrySet().iterator();
+		final Iterator<Entry<String, InstanceStateHolder>> it = savedStates.entrySet().iterator();
 		while (it.hasNext()) {
-			final Entry<String, AbstractInsnNode> entry = it.next();
+			final Entry<String, InstanceStateHolder> entry = it.next();
 			if (restoredStates.containsKey(entry.getKey())) {
 				restoredStates.remove(entry.getKey());
 				it.remove();
@@ -340,21 +351,22 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		}
 
 		// report
-		report(context, savedStates, SAVED_BUT_NEVER_RESTORED);
-		report(context, restoredStates, RESTORED_BUT_NEVER_SAVED);
+		report(cContext, savedStates, SAVED_BUT_NEVER_RESTORED);
+		report(cContext, restoredStates, RESTORED_BUT_NEVER_SAVED);
 		// reset all
 		classContext = null;
 		savedStates.clear();
 		restoredStates.clear();
 	}
 
-	private void reportOverwritingFieldsAndInvalidTypeOnSave(@Nonnull final Context context) {
+	private void reportOverwritingFieldsAndInvalidTypeOnSave(@Nonnull final ClassContext context) {
 		reportOverwritingFieldsAndInvalidType(savedStates, restoredStates, context,
 				false, FIELD_ALREADY_SAVED, SAVED_WITH_DIFERENT_TYPES);
 	}
 
 	private void reportOverwritingFieldsAndInvalidTypeOnRestore(
-			@Nonnull final Map<String, AbstractInsnNode> restoredStatesToCheck, @Nonnull final Context context) {
+			@Nonnull final Map<String, InstanceStateHolder> restoredStatesToCheck,
+			@Nonnull final ClassContext context) {
 		reportOverwritingFieldsAndInvalidType(restoredStatesToCheck, savedStates, context,
 				true, FIELD_ALREADY_RESTORED, RESTORED_WITH_DIFERENT_TYPES);
 	}
@@ -368,18 +380,19 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	 * @param fieldErrorMessage The field error message to show
 	 * @param invalidTypeErrorMessage The invalid type error message to show
 	 */
-	private void reportOverwritingFieldsAndInvalidType(@Nonnull final Map<String, AbstractInsnNode> statesToCheck,
-			@Nonnull final Map<String, AbstractInsnNode> statesToRemove, @Nonnull final Context context,
+	private void reportOverwritingFieldsAndInvalidType(@Nonnull final Map<String, InstanceStateHolder> statesToCheck,
+			@Nonnull final Map<String, InstanceStateHolder> statesToRemove, @Nonnull final ClassContext context,
 			final boolean isRestoring, @Nonnull final String fieldErrorMessage,
 			@Nonnull final String invalidTypeErrorMessage) {
 
 		final Set<String> fields = new HashSet<String>();
-		for (final Entry<String, AbstractInsnNode> entry : statesToCheck.entrySet()) {
+		for (final Entry<String, InstanceStateHolder> entry : statesToCheck.entrySet()) {
 			if (statesToRemove.containsKey(entry.getKey())) {
 				statesToRemove.remove(entry.getKey());
 			}
 
-			final FieldInsnNode field = getField(entry.getValue(), isRestoring);
+			final AbstractInsnNode instruction = entry.getValue().getInstruction();
+			final FieldInsnNode field = getField(instruction, isRestoring);
 			if (field == null) {
 				// we are restoring or saving a key locally
 				statesToRemove.put(entry.getKey(), entry.getValue());
@@ -388,13 +401,13 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 
 			final String nameSaved = field.name;
 			if (fields.contains(nameSaved)) {
-				context.report(OVERWRITING_FIELDS, classContext.getLocation(entry.getValue()),
-						String.format(fieldErrorMessage, nameSaved));
+				context.report(OVERWRITING_FIELDS, entry.getValue().getMethodNode(), instruction,
+						classContext.getLocation(instruction), String.format(fieldErrorMessage, nameSaved));
 			} else {
 				fields.add(nameSaved);
 			}
 
-			final String descriptor = ((MethodInsnNode) entry.getValue()).desc;
+			final String descriptor = ((MethodInsnNode) instruction).desc;
 			String type;
 			if (isRestoring) {
 				type = descriptor.substring(descriptor.indexOf(')') + 1);
@@ -402,6 +415,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				// get the type of the second parameter
 				type = descriptor.substring(descriptor.indexOf(';') + 1, descriptor.indexOf(')'));
 			}
+
 			reportSaveRestoreWithDifferentTypes(context, field, type, entry.getValue(), invalidTypeErrorMessage);
 		}
 		fields.clear();
@@ -412,13 +426,12 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	 * @param context The context to generate the report
 	 * @param field The field to check the type
 	 * @param expectedtype The expected type
-	 * @param node The node that is being scanned
+	 * @param InstanceStateHolder The instance scope holder
 	 * @param message The message to report
 	 */
-	private void reportSaveRestoreWithDifferentTypes(@Nonnull final Context context, @Nonnull final FieldInsnNode field,
-			@Nonnull final String expectedtype, @Nonnull final AbstractInsnNode node,
-			@Nonnull final String message) {
-		final String methodName = ((MethodInsnNode) node).name;
+	private void reportSaveRestoreWithDifferentTypes(@Nonnull final ClassContext context,
+			@Nonnull final FieldInsnNode field, @Nonnull final String expectedtype,
+			@Nonnull final InstanceStateHolder instanceScopeHolder, @Nonnull final String message) {
 
 		// We are ignoring Serializable and Parcelable, this is due the code not compile
 		// if we are trying to put an object that no implements Serializable or Pracelable
@@ -431,8 +444,10 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 
 		// check the field type with the expected type
 		if (!field.desc.equals(expectedtype)) {
-			context.report(INVALID_TYPE, classContext.getLocation(node),
-					String.format(message, methodName, expectedtype, field.name, field.desc));
+			final AbstractInsnNode instruction = instanceScopeHolder.getInstruction();
+			context.report(INVALID_TYPE, instanceScopeHolder.getMethodNode(), instruction,
+					classContext.getLocation(instruction),
+					String.format(message, ((MethodInsnNode) instruction).name, expectedtype, field.name, field.desc));
 		}
 	}
 
@@ -477,7 +492,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		// we need to ignore if the invokeVirtual is not from a bundle
 		final AbstractInsnNode next = node.getNext();
 		return next.getOpcode() == Opcodes.INVOKEVIRTUAL
-				&& !"android/os/Bundle".equals(((MethodInsnNode) next).owner);
+				&& !ANDROID_BUNDLE_PATH.equals(((MethodInsnNode) next).owner);
 	}
 
 	/**
@@ -489,16 +504,17 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		// When we are restoring or saving a state in a field, the first opcode that we are going to find
 		// should be a PUTFIELD or GETFIELD, but not necessarily is the next opcode, so
 		// we need to check that the instruction is not another save or restore instruction too.
-		return node.getOpcode() == Opcodes.INVOKEVIRTUAL && "android/os/Bundle".equals(((MethodInsnNode) node).owner)
+		return node.getOpcode() == Opcodes.INVOKEVIRTUAL && ANDROID_BUNDLE_PATH.equals(((MethodInsnNode) node).owner)
 				|| node.getOpcode() == Opcodes.GETSTATIC;
 	}
 
-	private void report(@Nonnull final Context context, @Nonnull final Map<String, AbstractInsnNode> states,
+	private void report(@Nonnull final ClassContext context, @Nonnull final Map<String, InstanceStateHolder> states,
 			@Nonnull final String message) {
 		if (!states.isEmpty()) {
-			for (final Entry<String, AbstractInsnNode> entry : states.entrySet()) {
-				context.report(MISSING_SAVED_INSTANCE_STATES, classContext.getLocation(entry.getValue()),
-						String.format(message, getBundleKey(entry.getValue())));
+			for (final Entry<String, InstanceStateHolder> entry : states.entrySet()) {
+				final AbstractInsnNode instruction = entry.getValue().getInstruction();
+				context.report(MISSING_SAVED_INSTANCE_STATES, entry.getValue().getMethodNode(), instruction,
+						classContext.getLocation(instruction), String.format(message, getBundleKey(instruction)));
 			}
 		}
 	}
