@@ -20,6 +20,7 @@ import static com.monits.linters.InstanceStateDetector.RESTORED_BUT_NEVER_SAVED;
 import static com.monits.linters.InstanceStateDetector.RESTORED_WITH_DIFERENT_TYPES;
 import static com.monits.linters.InstanceStateDetector.SAVED_BUT_NEVER_RESTORED;
 import static com.monits.linters.InstanceStateDetector.SAVED_WITH_DIFERENT_TYPES;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -315,5 +316,106 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 
 		assertTrue("There are unexpected warnings when restore a state locally and then in a Field",
 				getWarnings().isEmpty());
+	}
+
+	public void testIgnoreMissingSaveInstanceStates() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreMissingSaveInstanceStates.java.txt=>"
+						+ "src/TestIgnoreMissingSaveInstanceStates.java")
+				));
+
+		assertThat("Failed while trying to ignore a missing saved state",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreMissingSaveInstanceStates.java")
+				.line(26)
+				.message(String.format(RESTORED_BUT_NEVER_SAVED, "KEY_CHAR"))
+				.build()
+			)));
+	}
+
+	public void testIgnoreMissingRestoreInstanceStates() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreMissingRestoreInstanceStates.java.txt=>"
+						+ "src/TestIgnoreMissingRestoreInstanceStates.java")
+				));
+
+		assertTrue("There are unexpected warnings when ignore a missing restored state",
+				getWarnings().isEmpty());
+	}
+
+	public void testIgnoreMissingSaveInstanceStateWithAuxiliarMethod() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreMissingSaveInstanceStateWithAuxiliarMethod.java.txt=>"
+						+ "src/TestIgnoreMissingSaveInstanceStateWithAuxiliarMethod.java")
+				));
+
+		assertThat("Failed while trying to ignore a missing saved state when restore states with auxiliar methods",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreMissingSaveInstanceStateWithAuxiliarMethod.java")
+				.line(36)
+				.message(String.format(RESTORED_BUT_NEVER_SAVED, "QuestionHistoryMessages"))
+				.build()
+			)));
+	}
+
+	public void testIgnoreOverwritingSaveInstanceState() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreOverwritingSaveInstanceState.java.txt=>"
+						+ "src/TestIgnoreOverwritingSaveInstanceState.java")
+				));
+
+		assertTrue("There are unexpected warnings when trying to ignore a state that is being overwritten",
+				getWarnings().isEmpty());
+	}
+
+	public void testIgnoreRestoredASavedStateInSameField() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreRestoredASavedStateInSameField.java.txt=>"
+						+ "src/TestIgnoreRestoredASavedStateInSameField.java")
+				));
+
+		assertThat("Failed while trying to ignore a field that is being overwritten",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreRestoredASavedStateInSameField.java")
+				.line(19)
+				.message(String.format(FIELD_ALREADY_RESTORED, "number"))
+				.build()
+			)));
+	}
+
+	public void testIgnoreSaveAStateWithDifferentType() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreSaveAStateWithDifferentType.java.txt=>"
+						+ "src/TestIgnoreSaveAStateWithDifferentType.java")
+				));
+
+		assertTrue("There are unexpected warnings while trying to ignore an invalid type check"
+				+ " when a state is begin saved", getWarnings().isEmpty());
+	}
+
+	public void testIgnoreRestoreAStateWithDifferentType() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreRestoreAStateWithDifferentType.java.txt=>"
+						+ "src/TestIgnoreRestoreAStateWithDifferentType.java")
+				));
+
+		assertThat("Failed while trying to ignore an invalid type check when a state is begin restored",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreRestoreAStateWithDifferentType.java")
+				.line(28)
+				.message(String.format(RESTORED_WITH_DIFERENT_TYPES, "getInt", "I", "doubleValue", "D"))
+				.build()
+			)));
 	}
 }

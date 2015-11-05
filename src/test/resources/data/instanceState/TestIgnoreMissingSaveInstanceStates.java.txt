@@ -1,0 +1,29 @@
+import android.app.Activity;
+import android.os.Bundle;
+import android.util.Log;
+import android.annotation.SuppressLint;
+
+public class TestIgnoreMissingSaveInstanceStates extends Activity {
+
+	private static final String KEY_STRING_ARRAY = "KEY_STRING_ARRAY";
+	private static final String KEY_CHAR = "KEY_CHAR";
+	private String[] stringArray;
+	private char mChar;
+
+	@Override
+	protected void onRestoreInstanceState(final Bundle savedInstanceState) {
+		super.onRestoreInstanceState(savedInstanceState);
+		if (savedInstanceState != null) {
+			stringArray = savedInstanceState.getStringArray(KEY_STRING_ARRAY);
+		}
+	}
+
+	@Override
+	@SuppressLint("missingSavedOrRestoredInstanceState")
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if (savedInstanceState != null) {
+			mChar = savedInstanceState.getChar(KEY_CHAR);
+		}
+	}
+}
