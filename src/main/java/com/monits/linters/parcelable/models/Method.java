@@ -15,21 +15,26 @@ package com.monits.linters.parcelable.models;
 
 import javax.annotation.Nonnull;
 
+import org.objectweb.asm.tree.MethodNode;
+
 import com.android.tools.lint.detector.api.Location;
 
 public class Method {
 	private final String name;
 	private final Location location;
+	private final MethodNode methodContainer;
 
 	/**
 	 *  Creates a new Method instance.
 	 * @param name The method's name
 	 * @param location The method's location
+	 * @param methodContainer The method container
 	 */
-
-	public Method(@Nonnull final String name, @Nonnull final Location location) {
+	public Method(@Nonnull final String name, @Nonnull final Location location,
+			@Nonnull final MethodNode methodContainer) {
 		this.name = name;
 		this.location = location;
+		this.methodContainer = methodContainer;
 	}
 
 	@Nonnull
@@ -45,5 +50,10 @@ public class Method {
 	@Override
 	public String toString() {
 		return "Method [ name=" + name + ", location=" + location + " ]";
+	}
+
+	@Nonnull
+	public MethodNode getMethodContainer() {
+		return methodContainer;
 	}
 }

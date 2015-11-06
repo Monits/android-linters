@@ -1,0 +1,37 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.annotation.SuppressLint;
+
+public class IgnoreWriteOutOfOrder implements Parcelable {
+	public static final Parcelable.Creator<IgnoreWriteOutOfOrder> CREATOR = new Parcelable.Creator<IgnoreWriteOutOfOrder>() {
+		@Override
+		public IgnoreWriteOutOfOrder createFromParcel(final Parcel in) {
+			return new IgnoreWriteOutOfOrder(in);
+		}
+
+		@Override
+		public IgnoreWriteOutOfOrder[] newArray(final int size) {
+			return new IgnoreWriteOutOfOrder[size];
+		}
+	};
+
+	private String s1;
+	private String s2;
+
+	public IgnoreWriteOutOfOrder(final Parcel in) {
+		s2 = in.readString();
+		s1 = in.readString();
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	@SuppressLint("MissingOrOutOfOrder")
+	public void writeToParcel(final Parcel dest, final int i) {
+		dest.writeString(s1);
+		dest.writeString(s2);
+	}
+}

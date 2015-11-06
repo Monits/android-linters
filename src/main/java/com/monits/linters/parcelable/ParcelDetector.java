@@ -117,8 +117,8 @@ public class ParcelDetector extends Detector implements ClassScanner {
 			final Collection<String> values = ParcelMethodManager.INSTANCE
 					.getParcelableMethods().get(readMethod.getName());
 			if (values != null && !values.contains(writeMethod.getName())) {
-				context.report(INCOMPATIBLE_READ_WRITE_TYPE,
-						readMethod.getLocation(),
+				((ClassContext) context).report(INCOMPATIBLE_READ_WRITE_TYPE, readMethod.getMethodContainer(),
+						null, readMethod.getLocation(),
 						"Incompatible types: " + readMethod.getName() + " - "
 								+ writeMethod.getName());
 			}
@@ -126,6 +126,10 @@ public class ParcelDetector extends Detector implements ClassScanner {
 	}
 
 	private void reportMissingOrOutOfOrder(@Nonnull final Context context) {
+		if (!(context instanceof ClassContext)) {
+			throw new AssertionError("The context must be a ClassContext to allow limit the scope of the issue");
+		}
+		final ClassContext cContext = (ClassContext) context;
 		while (!writeFieldQueue.isEmpty() && !readFieldQueue.isEmpty()) {
 			final ParcelableField writeField = writeFieldQueue.peek();
 			final ParcelableField readField = readFieldQueue.peek();
@@ -135,27 +139,33 @@ public class ParcelDetector extends Detector implements ClassScanner {
 			// writeField contains a Field named "this" if the writeToParcel Method is calling super.writeToParcel(...)
 			} else if (AbstractMethodVisitor.THIS.equals(writeField.getName())) {
 				// we use the readField position to pointing the missing super call
-				context.report(MISSING_OR_OUT_OF_ORDER, readField.getLocation(), MESSAGE_ERROR);
+				reportMissingOrOutOfOrder(cContext, readField);
 				writeFieldQueue.remove(writeField);
 			// readField contains a Field named "this" if the Constructor is calling super(in)
 			} else if (AbstractMethodVisitor.THIS.equals(readField.getName())) {
 				// we use the writeField position to pointing the missing super call
-				context.report(MISSING_OR_OUT_OF_ORDER, writeField.getLocation(), MESSAGE_ERROR);
+				reportMissingOrOutOfOrder(cContext, writeField);
 				readFieldQueue.remove(readField);
 			} else {
-				context.report(MISSING_OR_OUT_OF_ORDER, writeField.getLocation(), MESSAGE_ERROR);
+				reportMissingOrOutOfOrder(cContext, writeField);
 				writeFieldQueue.remove(writeField);
 				readFieldQueue.remove(writeField);
 			}
 		}
-		reportMissingVariables(context, readFieldQueue);
-		reportMissingVariables(context, writeFieldQueue);
+		reportMissingVariables(cContext, readFieldQueue);
+		reportMissingVariables(cContext, writeFieldQueue);
 	}
 
-	private void reportMissingVariables(@Nonnull final Context context,
+	private void reportMissingOrOutOfOrder(@Nonnull final ClassContext context,
+			@Nonnull final ParcelableField element) {
+		context.report(MISSING_OR_OUT_OF_ORDER, element.getMethodContainer(), null,
+				element.getLocation(), MESSAGE_ERROR);
+	}
+
+	private void reportMissingVariables(@Nonnull final ClassContext context,
 			@Nonnull final Queue<ParcelableField> queue) {
 		for (final ParcelableField field : queue) {
-			context.report(MISSING_OR_OUT_OF_ORDER, field.getLocation(), MESSAGE_ERROR);
+			reportMissingOrOutOfOrder(context, field);
 		}
 	}
 

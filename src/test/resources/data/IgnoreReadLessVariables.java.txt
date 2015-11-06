@@ -1,0 +1,33 @@
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.annotation.SuppressLint;
+
+public class IgnoreReadLessVariables implements Parcelable {
+	public static final Parcelable.Creator<IgnoreReadLessVariables> CREATOR = new Parcelable.Creator<IgnoreReadLessVariables>() {
+		@Override
+		public IgnoreReadLessVariables createFromParcel(final Parcel in) {
+			return new IgnoreReadLessVariables(in);
+		}
+
+		@Override
+		public IgnoreReadLessVariables[] newArray(final int size) {
+			return new IgnoreReadLessVariables[size];
+		}
+	};
+
+	private String s1;
+
+	public IgnoreReadLessVariables(final Parcel in) {
+	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	@SuppressLint("MissingOrOutOfOrder")
+	public void writeToParcel(final Parcel dest, final int i) {
+		dest.writeString(s1);
+	}
+}
