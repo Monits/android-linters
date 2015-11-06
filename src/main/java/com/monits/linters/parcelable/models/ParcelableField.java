@@ -15,6 +15,8 @@ package com.monits.linters.parcelable.models;
 
 import javax.annotation.Nonnull;
 
+import org.objectweb.asm.tree.MethodNode;
+
 import com.android.tools.lint.detector.api.Location;
 
 public class ParcelableField {
@@ -23,6 +25,7 @@ public class ParcelableField {
 	private final String name;
 	private final String className;
 	private final Location location;
+	private final MethodNode methodContainer;
 
 	/**
 	 * Creates a new ParcelableField instance
@@ -30,13 +33,16 @@ public class ParcelableField {
 	 * @param name The field's name
 	 * @param className The field's class name
 	 * @param location The field's location
+	 * @param methodContainer the method container
 	 */
+
 	public ParcelableField(@Nonnull final String name,
 		@Nonnull final String className,
-		@Nonnull final Location location) {
+		@Nonnull final Location location, @Nonnull final MethodNode methodContainer) {
 		this.name = name;
 		this.className = className;
 		this.location = location;
+		this.methodContainer = methodContainer;
 	}
 
 	@Override
@@ -67,6 +73,11 @@ public class ParcelableField {
 	public String toString() {
 		return "Field [ name=" + name + ", className="
 			+ className + ", location=" + location + " ]";
+	}
+
+	@Nonnull
+	public MethodNode getMethodContainer() {
+		return methodContainer;
 	}
 
 	@Nonnull

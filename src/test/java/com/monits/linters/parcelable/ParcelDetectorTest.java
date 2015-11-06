@@ -100,4 +100,50 @@ public class ParcelDetectorTest extends AbstractTestCase {
 
 		assertTrue("There are some warnings", getWarnings().isEmpty());
 	}
+
+	public void testIgnoreWriteOutOfOrder() throws Exception {
+		lintProject(compile(file("IgnoreWriteOutOfOrder.java.txt=>src/IgnoreWriteOutOfOrder.java")));
+
+		assertThat("Failed to check writing order", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+					.fileName("IgnoreWriteOutOfOrder.java")
+					.line(34)
+					.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+					.build())));
+	}
+
+	public void testIgnoreReadLessVariables() throws Exception {
+		lintProject(compile(file("IgnoreReadLessVariables.java.txt=>src/IgnoreReadLessVariables.java")));
+
+		assertThat("Failed to retrieve all writing fields",
+				getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+					.fileName("IgnoreReadLessVariables.java")
+					.line(31)
+					.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+					.build())));
+	}
+
+	public void testIgnoreForgetCallingSuper() throws Exception {
+		lintProject(compile(file("IgnoreForgetCallingSuperClass.java.txt=>src/IgnoreForgetCallingSuperClass.java",
+			"SuperClass.java.txt=>src/SuperClass.java")));
+
+		assertThat("Failed to check super method call", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("IgnoreForgetCallingSuperClass.java")
+				.line(33)
+				.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+				.build())));
+	}
+
+	public void testIgnoreReadIncompatibleTypes() throws Exception {
+		lintProject(compile(file("IgnoreReadIncompatibleTypes.java.txt=>src/IgnoreReadIncompatibleTypes.java")));
+
+		assertThat("Failed to retrieve types of the reading variables", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("IgnoreReadIncompatibleTypes.java")
+				.line(22)
+				.message("Incompatible types: readString - writeInt")
+				.build())));
+	}
 }
