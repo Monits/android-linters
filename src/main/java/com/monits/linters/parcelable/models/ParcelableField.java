@@ -31,7 +31,6 @@ public class ParcelableField {
 	 * @param className The field's class name
 	 * @param location The field's location
 	 */
-
 	public ParcelableField(@Nonnull final String name,
 		@Nonnull final String className,
 		@Nonnull final Location location) {
@@ -70,5 +69,8 @@ public class ParcelableField {
 			+ className + ", location=" + location + " ]";
 	}
 
-
+	@Nonnull
+	public String getName() {
+		return name;
+	}
 }

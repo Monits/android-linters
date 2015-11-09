@@ -37,6 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 	+ " the class private method.")
 public abstract class AbstractMethodVisitor extends MethodVisitor {
 
+	public static final String THIS = "this";
 	private static final String OBJECT_CLASS = Type.getDescriptor(Object.class);
 	private static final String PARCELABLE_INTERFACE = "android/os/Parcelable";
 	private static final String PARCELABLE_OWNER = "android/os/Parcel";
@@ -117,7 +118,7 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 	private void handleInvokeSpecial(@Nonnull final String owner,
 		@Nonnull final String name, @Nonnull final String desc) {
 		if (needToCallSuper(owner, name, desc)) {
-			final ParcelableField field = new ParcelableField("this", owner,
+			final ParcelableField field = new ParcelableField(THIS, owner,
 				context.getLocationForLine(line, null, null,
 				null));
 			addFieldToQueue(field);
