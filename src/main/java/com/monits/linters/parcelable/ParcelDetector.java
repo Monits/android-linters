@@ -45,6 +45,7 @@ import com.monits.linters.parcelable.models.Method;
 import com.monits.linters.parcelable.models.ParcelMethodManager;
 import com.monits.linters.parcelable.models.ParcelableField;
 import com.monits.linters.parcelable.models.QueueManager;
+import com.monits.linters.parcelable.visitors.AbstractMethodVisitor;
 import com.monits.linters.parcelable.visitors.ParcelClassVisitor;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -131,16 +132,24 @@ public class ParcelDetector extends Detector implements ClassScanner {
 			if (writeField.equals(readField)) {
 				writeFieldQueue.remove(writeField);
 				readFieldQueue.remove(readField);
+			// writeField contains a Field named "this" if the writeToParcel Method is calling super.writeToParcel(...)
+			} else if (AbstractMethodVisitor.THIS.equals(writeField.getName())) {
+				// we use the readField position to pointing the missing super call
+				context.report(MISSING_OR_OUT_OF_ORDER, readField.getLocation(), MESSAGE_ERROR);
+				writeFieldQueue.remove(writeField);
+			// readField contains a Field named "this" if the Constructor is calling super(in)
+			} else if (AbstractMethodVisitor.THIS.equals(readField.getName())) {
+				// we use the writeField position to pointing the missing super call
+				context.report(MISSING_OR_OUT_OF_ORDER, writeField.getLocation(), MESSAGE_ERROR);
+				readFieldQueue.remove(readField);
 			} else {
-				context.report(MISSING_OR_OUT_OF_ORDER,
-						writeField.getLocation(), MESSAGE_ERROR);
+				context.report(MISSING_OR_OUT_OF_ORDER, writeField.getLocation(), MESSAGE_ERROR);
 				writeFieldQueue.remove(writeField);
 				readFieldQueue.remove(writeField);
 			}
 		}
 		reportMissingVariables(context, readFieldQueue);
 		reportMissingVariables(context, writeFieldQueue);
-
 	}
 
 	private void reportMissingVariables(@Nonnull final Context context,

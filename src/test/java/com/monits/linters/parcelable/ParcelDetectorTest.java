@@ -13,6 +13,7 @@
  */
 package com.monits.linters.parcelable;
 
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -56,14 +57,19 @@ public class ParcelDetectorTest extends AbstractTestCase {
 		lintProject(compile(file("ForgetCallingSuperClass.java.txt=>src/ForgetCallingSuperClass.java",
 			"SuperClass.java.txt=>src/SuperClass.java")));
 
-		final WarningMatcherBuilder warningMatchersBuilder = new WarningMatcherBuilder()
-			.fileName("ForgetCallingSuperClass.java")
-			.message(MISSING_OR_OUT_OF_ERROR_MESSAGE);
+		assertThat("Failed to check super method call", getWarnings(),
+				Matchers.contains(new WarningMatcherBuilder()
+				.fileName("ForgetCallingSuperClass.java")
+				.line(32)
+				.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+				.build()));
 
-		assertThat("Failed to check super method call",
-				getWarnings(), Matchers.contains(Arrays.asList(
-					warningMatchersBuilder.line(20).build(),
-					warningMatchersBuilder.line(32).build())));
+		assertThat("Failed to check super method call", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("ForgetCallingSuperClass.java")
+				.line(20)
+				.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+				.build())));
 	}
 
 	public void testWriteOutOfOrder() throws Exception {
