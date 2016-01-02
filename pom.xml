@@ -29,6 +29,11 @@
 			<url>https://github.com/jsotuyod</url>
 		</developer>
 		<developer>
+			<id>DTecheira</id>
+			<name>Damian Techeira</name>
+			<url>https://github.com/DTecheira</url>
+		</developer>
+		<developer>
 			<id>MartuPuri</id>
 			<name>Martin Purita</name>
 			<url>https://github.com/MartuPuri</url>
@@ -47,6 +52,13 @@
 			<name>Monits Releases</name>
 		</repository>
 	</repositories>
+
+	<distributionManagement>
+		<repository>
+			<id>bintray</id>
+			<url>https://api.bintray.com/maven/monits/monits-android/android-linters/;publish=1</url>
+		</repository>
+	</distributionManagement>
 
 	<properties>
 		<android-version>24.4.0-beta1</android-version>
@@ -92,6 +104,30 @@
 						<phase>verify</phase>
 						<goals>
 							<goal>format</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-javadoc</id>
+						<goals>
+							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>
