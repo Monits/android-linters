@@ -1,0 +1,43 @@
+import android.app.ListFragment;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class SaveRestoreLocallyStatesInAListFragment extends ListFragment {
+
+	private static final String ITEM_LIST = "ITEM_LIST";
+	private MyAdapter adapter;
+
+	@Override
+	public void onSaveInstanceState(final Bundle outState) {
+		if (adapter.getItemCount() > 0) {
+			final ArrayList<String> items = new ArrayList<String>((List<String>) adapter.getItems());
+			outState.putSerializable(ITEM_LIST, items);
+		}
+		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	public View onCreateView(
+			final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
+		final View view = super.onCreateView(inflater, container, savedInstanceState);
+		if (savedInstanceState.containsKey(ITEM_LIST)) {
+			final ArrayList<String> items = (ArrayList<String>) savedInstanceState.getSerializable(ITEM_LIST);
+		}
+		return view;
+	}
+
+	private class MyAdapter {
+		public Object getItems() {
+			return Collections.emptyList();
+		}
+		public int getItemCount() {
+			return 0;
+		}
+	}
+}

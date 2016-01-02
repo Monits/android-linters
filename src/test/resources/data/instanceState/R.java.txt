@@ -1,0 +1,6 @@
+public final class R {
+	public static final class id {
+		public static final int test_id = 0x7f0c004f;
+		public static final int loading = 0x7f0b114e;
+	}
+}

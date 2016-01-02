@@ -1,0 +1,44 @@
+import android.app.Activity;
+import android.os.Bundle;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import android.annotation.SuppressLint;
+
+public class TestIgnoreMissingSaveInstanceStateWithAuxiliarMethod extends Activity {
+
+	private static final String ANSWER_ITEM = "ITEM";
+	public static final String PENDING_ATTACHMENTS = "PENDING_ATTACHMENTS";
+	public static final String QUESTION_MESSAGE_HISTORY = "QuestionHistoryMessages";
+
+	private Map<String, Long> pendingItems;
+	private Set<Long> questionMessageHistory;
+
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		configureUI(savedInstanceState);
+	}
+
+	private void configureUI(final Bundle savedInstanceState) {
+		if (savedInstanceState != null
+				&& savedInstanceState.containsKey(ANSWER_ITEM)) {
+			loadFromBundle(savedInstanceState);
+			pendingItems = (Map<String, Long>) savedInstanceState.getSerializable(PENDING_ATTACHMENTS);
+		}
+	}
+
+	@SuppressLint("missingSavedOrRestoredInstanceState")
+	private void loadFromBundle(final Bundle bundle) {
+		if (bundle.containsKey(QUESTION_MESSAGE_HISTORY)) {
+			questionMessageHistory =
+					(Set<Long>) bundle.getSerializable(QUESTION_MESSAGE_HISTORY);
+		}
+
+		if (bundle.containsKey(ANSWER_ITEM)) {
+			configureUI(bundle);
+		}
+	}
+}

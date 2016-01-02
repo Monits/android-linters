@@ -1,5 +1,5 @@
 /**
- *  Copyright 2010 - 2015 - Monits
+ *  Copyright 2010 - 2016 - Monits
  *
  *   Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
  *   file except in compliance with the License. You may obtain a copy of the License at
@@ -48,6 +48,10 @@ public abstract class AbstractTestCase extends LintDetectorTest {
 	private static final String CLASSPATH_OPTION_COMPILE = "-classpath";
 	private static final String OUTPUT_DIR_OPTION_COMPILE = "-d";
 	private static final char DOUBLE_COLON = ':';
+
+	// the -g option have three keywords, line, source and vars by default line and source are enabled.
+	// because we need to know the local variables (vars) we are adding this option to enable the local variables table.
+	private static final String DEBUG_INFO_OPTION_COMPILE = "-g";
 
 	private final InMemoryReporter inMemoryReporter;
 
@@ -154,7 +158,8 @@ public abstract class AbstractTestCase extends LintDetectorTest {
 				.getJavaFileObjectsFromFiles(files);
 		// compile java files
 		compiler.getTask(null, fileManager, null,
-				Arrays.asList(CLASSPATH_OPTION_COMPILE, Joiner.on(DOUBLE_COLON).join(jarList),
+				Arrays.asList(DEBUG_INFO_OPTION_COMPILE, CLASSPATH_OPTION_COMPILE,
+						Joiner.on(DOUBLE_COLON).join(jarList),
 						OUTPUT_DIR_OPTION_COMPILE, tempDir.getAbsolutePath()),
 				null, compilationUnits).call();
 

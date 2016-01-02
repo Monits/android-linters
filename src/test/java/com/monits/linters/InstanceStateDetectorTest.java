@@ -1,5 +1,5 @@
 /**
- *  Copyright 2010 - 2015 - Monits
+ *  Copyright 2010 - 2016 - Monits
  *
  *   Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
  *   file except in compliance with the License. You may obtain a copy of the License at
@@ -20,6 +20,7 @@ import static com.monits.linters.InstanceStateDetector.RESTORED_BUT_NEVER_SAVED;
 import static com.monits.linters.InstanceStateDetector.RESTORED_WITH_DIFERENT_TYPES;
 import static com.monits.linters.InstanceStateDetector.SAVED_BUT_NEVER_RESTORED;
 import static com.monits.linters.InstanceStateDetector.SAVED_WITH_DIFERENT_TYPES;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -49,7 +50,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 	public void testActivityWithStatesSavedAndRestored() throws Exception {
 		lintProject(
 			compile(
-				file("instanceState/ActivityWithStatesSavedAndRestored.java.txt=>"
+				file("instanceState/R.java.txt=>src/R.java",
+						"instanceState/ActivityWithStatesSavedAndRestored.java.txt=>"
 						+ "src/ActivityWithStatesSavedAndRestored.java")
 				));
 
@@ -235,9 +237,185 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 			getWarnings(),
 			Matchers.contains(new WarningMatcherBuilder()
 				.fileName("RestoreVariableWithDifferentTypes.java")
-				.line(15)
+				.line(18)
 				.message(String.format(RESTORED_WITH_DIFERENT_TYPES, "getChar", "C", "number", "I"))
 				.build()
 				));
+	}
+
+	public void testSaveAndRestoreLocalInstanceStates() throws Exception {
+		lintProject(
+				compile(file("instanceState/SaveAndRestoreLocalInstanceStates.java.txt=>"
+						+ "src/SaveAndRestoreLocalInstanceStates.java")));
+
+		assertTrue("There are unexpected warnings when checking local saved/restored states",
+				getWarnings().isEmpty());
+	}
+
+	public void testCFGAnalysis() throws Exception {
+		lintProject(
+				compile(file("instanceState/CFGAnalysis.java.txt=>"
+						+ "src/CFGAnalysis.java")));
+
+		assertThat("Failed to check a save or restore state while doing a control flow scan",
+				getWarnings(),
+				Matchers.contains(new WarningMatcherBuilder()
+					.fileName("CFGAnalysis.java")
+					.line(46)
+					.message(String.format(SAVED_BUT_NEVER_RESTORED, "PENDING_ATTACHMENTS"))
+					.build()
+				));
+	}
+
+	public void testRestoreFromExtras() throws Exception {
+		lintProject(
+				compile(file("instanceState/R.java.txt=>"
+						+ "src/R.java",
+						"instanceState/RestoreFromExtras.java.txt=>"
+						+ "src/RestoreFromExtras.java")));
+
+		assertTrue("There are unexpected warnings when checking data from extras",
+				getWarnings().isEmpty());
+	}
+
+	public void testFragmentWithLocalStates() throws Exception {
+		lintProject(
+				compile(file("instanceState/FragmentWithLocalStates.java.txt=>"
+						+ "src/FragmentWithLocalStates.java")));
+
+		assertTrue("There are unexpected warning when check local states in the fragment",
+				getWarnings().isEmpty());
+	}
+
+	public void testRestoreStateLocallyAndThenInAField() throws Exception {
+		lintProject(
+				compile(file("instanceState/RestoreStateLocallyAndThenInAField.java.txt=>"
+						+ "src/RestoreStateLocallyAndThenInAField.java")));
+
+		assertTrue("There are unexpected warning when restore a state locally and then in a field",
+				getWarnings().isEmpty());
+	}
+
+	public void testSaveRestoreLocallyStatesInAListFragment() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/SaveRestoreLocallyStatesInAListFragment.java.txt=>"
+						+ "src/SaveRestoreLocallyStatesInAListFragment.java")
+				));
+
+		assertTrue("There are unexpected warnings when save and restore states locally in a ListFragment",
+				getWarnings().isEmpty());
+	}
+
+	public void testRestoreLocalVariableInField() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/RestoreLocalVariableInField.java.txt=>"
+						+ "src/RestoreLocalVariableInField.java")
+				));
+
+		assertTrue("There are unexpected warnings when restore a state locally and then in a Field",
+				getWarnings().isEmpty());
+	}
+
+	public void testIgnoreMissingSaveInstanceStates() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreMissingSaveInstanceStates.java.txt=>"
+						+ "src/TestIgnoreMissingSaveInstanceStates.java")
+				));
+
+		assertThat("Failed while trying to ignore a missing saved state",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreMissingSaveInstanceStates.java")
+				.line(26)
+				.message(String.format(RESTORED_BUT_NEVER_SAVED, "KEY_CHAR"))
+				.build()
+			)));
+	}
+
+	public void testIgnoreMissingRestoreInstanceStates() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreMissingRestoreInstanceStates.java.txt=>"
+						+ "src/TestIgnoreMissingRestoreInstanceStates.java")
+				));
+
+		assertTrue("There are unexpected warnings when ignore a missing restored state",
+				getWarnings().isEmpty());
+	}
+
+	public void testIgnoreMissingSaveInstanceStateWithAuxiliarMethod() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreMissingSaveInstanceStateWithAuxiliarMethod.java.txt=>"
+						+ "src/TestIgnoreMissingSaveInstanceStateWithAuxiliarMethod.java")
+				));
+
+		assertThat("Failed while trying to ignore a missing saved state when restore states with auxiliar methods",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreMissingSaveInstanceStateWithAuxiliarMethod.java")
+				.line(36)
+				.message(String.format(RESTORED_BUT_NEVER_SAVED, "QuestionHistoryMessages"))
+				.build()
+			)));
+	}
+
+	public void testIgnoreOverwritingSaveInstanceState() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreOverwritingSaveInstanceState.java.txt=>"
+						+ "src/TestIgnoreOverwritingSaveInstanceState.java")
+				));
+
+		assertTrue("There are unexpected warnings when trying to ignore a state that is being overwritten",
+				getWarnings().isEmpty());
+	}
+
+	public void testIgnoreRestoredASavedStateInSameField() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreRestoredASavedStateInSameField.java.txt=>"
+						+ "src/TestIgnoreRestoredASavedStateInSameField.java")
+				));
+
+		assertThat("Failed while trying to ignore a field that is being overwritten",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreRestoredASavedStateInSameField.java")
+				.line(19)
+				.message(String.format(FIELD_ALREADY_RESTORED, "number"))
+				.build()
+			)));
+	}
+
+	public void testIgnoreSaveAStateWithDifferentType() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreSaveAStateWithDifferentType.java.txt=>"
+						+ "src/TestIgnoreSaveAStateWithDifferentType.java")
+				));
+
+		assertTrue("There are unexpected warnings while trying to ignore an invalid type check"
+				+ " when a state is begin saved", getWarnings().isEmpty());
+	}
+
+	public void testIgnoreRestoreAStateWithDifferentType() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/TestIgnoreRestoreAStateWithDifferentType.java.txt=>"
+						+ "src/TestIgnoreRestoreAStateWithDifferentType.java")
+				));
+
+		assertThat("Failed while trying to ignore an invalid type check when a state is begin restored",
+			getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("TestIgnoreRestoreAStateWithDifferentType.java")
+				.line(28)
+				.message(String.format(RESTORED_WITH_DIFERENT_TYPES, "getInt", "I", "doubleValue", "D"))
+				.build()
+			)));
 	}
 }

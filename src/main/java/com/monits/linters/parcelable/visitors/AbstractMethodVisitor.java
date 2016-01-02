@@ -1,5 +1,5 @@
 /**
- *  Copyright 2010 - 2015 - Monits
+ *  Copyright 2010 - 2016 - Monits
  *
  *   Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
  *   file except in compliance with the License. You may obtain a copy of the License at
@@ -16,13 +16,17 @@ package com.monits.linters.parcelable.visitors;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import com.android.tools.lint.detector.api.ClassContext;
 import com.monits.linters.parcelable.methods.AbstractInnerMethod;
@@ -37,6 +41,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 	+ " the class private method.")
 public abstract class AbstractMethodVisitor extends MethodVisitor {
 
+	public static final String THIS = "this";
 	private static final String OBJECT_CLASS = Type.getDescriptor(Object.class);
 	private static final String PARCELABLE_INTERFACE = "android/os/Parcelable";
 	private static final String PARCELABLE_OWNER = "android/os/Parcel";
@@ -57,6 +62,7 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 	protected final ClassContext context;
 	protected final ClassReader cr;
 	protected QueueManager queueManager;
+
 	/**
 	 * Creates a new AbstractMethodVisitor instance
 	 *
@@ -91,7 +97,7 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 		@Nonnull final String name, @Nonnull final String desc) {
 		if (opcodeNeedsToBeHandled(opcode)) {
 			final ParcelableField field = new ParcelableField(name, desc,
-					context.getLocationForLine(line, null, null, null));
+					context.getLocationForLine(line, null, null, null), getMethodContainer(method));
 			addFieldToQueue(field);
 		}
 	}
@@ -107,8 +113,8 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 				cr.accept(new ParcelClassVisitor(api, classNode,
 					createInnerMethod(name, desc), context, queueManager, cr), 0);
 			} else if (PARCELABLE_OWNER.equals(owner)) {
-				addMethodToQueue(new Method(name, context.getLocationForLine(
-						line, null, null, null)));
+				addMethodToQueue(new Method(name, context.getLocationForLine(line, null, null, null),
+						getMethodContainer(method)));
 			}
 		}
 		super.visitMethodInsn(opcode, owner, name, desc, itf);
@@ -117,18 +123,28 @@ public abstract class AbstractMethodVisitor extends MethodVisitor {
 	private void handleInvokeSpecial(@Nonnull final String owner,
 		@Nonnull final String name, @Nonnull final String desc) {
 		if (needToCallSuper(owner, name, desc)) {
-			final ParcelableField field = new ParcelableField("this", owner,
-				context.getLocationForLine(line, null, null,
-				null));
+			final ParcelableField field = new ParcelableField(THIS, owner,
+				context.getLocationForLine(line, null, null, null), getMethodContainer(method));
 			addFieldToQueue(field);
 		} else if (!name.equals(method)
-				|| owner.equals(classNode.name)) {
+				&& owner.equals(classNode.name)) {
 			/*
 			 * The invoke special belongs to a private method
 			 */
 			cr.accept(new ParcelClassVisitor(api, classNode,
 					createInnerMethod(name, desc), context, queueManager, cr), 0);
 		}
+	}
+
+	@Nullable
+	private MethodNode getMethodContainer(@Nonnull final String name) {
+		final List<MethodNode> methods = classNode.methods;
+		for (final MethodNode methodContainer : methods) {
+			if (methodContainer.name.equals(name)) {
+				return methodContainer;
+			}
+		}
+		return null;
 	}
 
 	/**

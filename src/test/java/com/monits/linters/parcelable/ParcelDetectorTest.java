@@ -1,5 +1,5 @@
 /**
- *  Copyright 2010 - 2015 - Monits
+ *  Copyright 2010 - 2016 - Monits
  *
  *   Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
  *   file except in compliance with the License. You may obtain a copy of the License at
@@ -13,6 +13,7 @@
  */
 package com.monits.linters.parcelable;
 
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -56,14 +57,19 @@ public class ParcelDetectorTest extends AbstractTestCase {
 		lintProject(compile(file("ForgetCallingSuperClass.java.txt=>src/ForgetCallingSuperClass.java",
 			"SuperClass.java.txt=>src/SuperClass.java")));
 
-		final WarningMatcherBuilder warningMatchersBuilder = new WarningMatcherBuilder()
-			.fileName("ForgetCallingSuperClass.java")
-			.message(MISSING_OR_OUT_OF_ERROR_MESSAGE);
+		assertThat("Failed to check super method call", getWarnings(),
+				Matchers.contains(new WarningMatcherBuilder()
+				.fileName("ForgetCallingSuperClass.java")
+				.line(32)
+				.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+				.build()));
 
-		assertThat("Failed to check super method call",
-				getWarnings(), Matchers.contains(Arrays.asList(
-					warningMatchersBuilder.line(20).build(),
-					warningMatchersBuilder.line(32).build())));
+		assertThat("Failed to check super method call", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("ForgetCallingSuperClass.java")
+				.line(20)
+				.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+				.build())));
 	}
 
 	public void testWriteOutOfOrder() throws Exception {
@@ -93,5 +99,51 @@ public class ParcelDetectorTest extends AbstractTestCase {
 				"SuperClass.java.txt=>src/SuperClass.java")));
 
 		assertTrue("There are some warnings", getWarnings().isEmpty());
+	}
+
+	public void testIgnoreWriteOutOfOrder() throws Exception {
+		lintProject(compile(file("IgnoreWriteOutOfOrder.java.txt=>src/IgnoreWriteOutOfOrder.java")));
+
+		assertThat("Failed to check writing order", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+					.fileName("IgnoreWriteOutOfOrder.java")
+					.line(34)
+					.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+					.build())));
+	}
+
+	public void testIgnoreReadLessVariables() throws Exception {
+		lintProject(compile(file("IgnoreReadLessVariables.java.txt=>src/IgnoreReadLessVariables.java")));
+
+		assertThat("Failed to retrieve all writing fields",
+				getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+					.fileName("IgnoreReadLessVariables.java")
+					.line(31)
+					.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+					.build())));
+	}
+
+	public void testIgnoreForgetCallingSuper() throws Exception {
+		lintProject(compile(file("IgnoreForgetCallingSuperClass.java.txt=>src/IgnoreForgetCallingSuperClass.java",
+			"SuperClass.java.txt=>src/SuperClass.java")));
+
+		assertThat("Failed to check super method call", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("IgnoreForgetCallingSuperClass.java")
+				.line(33)
+				.message(MISSING_OR_OUT_OF_ERROR_MESSAGE)
+				.build())));
+	}
+
+	public void testIgnoreReadIncompatibleTypes() throws Exception {
+		lintProject(compile(file("IgnoreReadIncompatibleTypes.java.txt=>src/IgnoreReadIncompatibleTypes.java")));
+
+		assertThat("Failed to retrieve types of the reading variables", getWarnings(),
+				not(Matchers.contains(new WarningMatcherBuilder()
+				.fileName("IgnoreReadIncompatibleTypes.java")
+				.line(22)
+				.message("Incompatible types: readString - writeInt")
+				.build())));
 	}
 }

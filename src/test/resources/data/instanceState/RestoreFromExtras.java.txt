@@ -1,0 +1,29 @@
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.widget.TextView;
+
+import java.util.HashMap;
+
+public class RestoreFromExtras extends Activity {
+
+	private static final String EXTRA_ITEM = "extraItem";
+
+	public static Intent getIntent(final Context context, final HashMap<String, Long> item) {
+		final Intent intent = new Intent(context, RestoreFromExtras.class);
+		intent.putExtra(EXTRA_ITEM, item);
+		return intent;
+	}
+
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+		final Bundle extras = getIntent().getExtras();
+		if (extras != null) {
+			final HashMap<String, Long> item = (HashMap<String, Long>) extras.getSerializable(EXTRA_ITEM);
+			final TextView totalStockText = (TextView) findViewById(R.id.test_id);
+		}
+	}
+}

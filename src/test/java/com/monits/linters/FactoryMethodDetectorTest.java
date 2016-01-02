@@ -1,5 +1,5 @@
 /**
- *  Copyright 2010 - 2015 - Monits
+ *  Copyright 2010 - 2016 - Monits
  *
  *   Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
  *   file except in compliance with the License. You may obtain a copy of the License at
@@ -14,6 +14,7 @@
 package com.monits.linters;
 
 import static com.monits.linters.FactoryMethodDetector.FACTORY_METHOD_ERROR_MESSAGE;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -158,5 +159,37 @@ public class FactoryMethodDetectorTest extends AbstractTestCase {
 			.line(6)
 			.message(FACTORY_METHOD_ERROR_MESSAGE)
 			.build()));
+	}
+
+	public void testIgnoreNewFragmentInstance() throws Exception {
+		lintProject(
+			compile(ANDROID_SUPPORT_V4_PATH,
+				file("factorymethod/TestIgnoreNewFragmentInstance.java.txt"
+						+ "=>src/TestIgnoreNewFragmentInstance.java",
+						"factorymethod/MyFragment.java.txt=>src/MyFragment.java")
+				));
+
+		assertThat("Failed while trying to ignore one new fragment instance", getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+			.fileName("TestIgnoreNewFragmentInstance.java")
+			.line(12)
+			.message(FACTORY_METHOD_ERROR_MESSAGE)
+			.build())));
+	}
+
+	public void testIgnoreNewFragmentInstanceInFragmentFactory() throws Exception {
+		lintProject(
+			compile(ANDROID_SUPPORT_V4_PATH,
+				file("factorymethod/TestIgnoreNewFragmentInstanceInFragmentFactory.java.txt"
+						+ "=>src/TestIgnoreNewFragmentInstanceInFragmentFactory.java",
+						"factorymethod/MyFragment.java.txt=>src/MyFragment.java")
+				));
+
+		assertThat("Failed while trying to ignore one new fragment instance in a fragment factory", getWarnings(),
+			not(Matchers.contains(new WarningMatcherBuilder()
+			.fileName("TestIgnoreNewFragmentInstanceInFragmentFactory.java")
+			.line(15)
+			.message(FACTORY_METHOD_ERROR_MESSAGE)
+			.build())));
 	}
 }

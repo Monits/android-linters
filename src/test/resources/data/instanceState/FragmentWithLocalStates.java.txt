@@ -1,0 +1,78 @@
+import android.app.Fragment;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.HashMap;
+
+public class FragmentWithLocalStates extends Fragment {
+
+	private static final String ITEM_LIST = "ITEM_LIST";
+	private static final String RESPONSE_ITEM = "RESPONSE_ITEM";
+	private static final String CURRENT_RESPONSIBLES = "CURRENT_RESPONSIBLES";
+
+	private MyAdapter adapter;
+	private HashMap<Long, String> responseItem;
+
+	public static FragmentWithLocalStates newInstance(final HashMap<Long, String> responseItem,
+			final ArrayList<String> currentResponsibles) {
+		final FragmentWithLocalStates fragment = new FragmentWithLocalStates();
+		final Bundle bundle = new Bundle();
+		bundle.putSerializable(RESPONSE_ITEM, responseItem);
+		bundle.putSerializable(CURRENT_RESPONSIBLES, currentResponsibles);
+		fragment.setArguments(bundle);
+		return fragment;
+	}
+
+	@Override
+	public View onCreateView(final LayoutInflater inflater,
+							 final ViewGroup container, final Bundle savedInstanceState) {
+		final View view = super.onCreateView(inflater, container, savedInstanceState);
+
+		final Bundle arguments = getArguments();
+		if (arguments != null) {
+			responseItem = (HashMap<Long, String>) arguments.getSerializable(RESPONSE_ITEM);
+		}
+
+		if (savedInstanceState != null) {
+			if (savedInstanceState.containsKey(ITEM_LIST)) {
+				adapter = new MyAdapter(
+						(ArrayList<String>) savedInstanceState.getSerializable(ITEM_LIST), this);
+			}
+		}
+		return view;
+	}
+
+	@Override
+	public void onViewCreated(final View view, final Bundle savedInstanceState) {
+		@SuppressWarnings("unchecked")
+		final ArrayList<String> responsibles =
+				(ArrayList<String>) getArguments().getSerializable(CURRENT_RESPONSIBLES);
+		if (responsibles != null) {
+			responsibles.clear();
+		}
+		super.onViewCreated(view, savedInstanceState);
+	}
+
+	@Override
+	public void onSaveInstanceState(final Bundle outState) {
+		if (adapter != null) {
+			final ArrayList<String> items = new ArrayList<String>(adapter.getAllItems());
+			outState.putSerializable(ITEM_LIST, items);
+		}
+		super.onSaveInstanceState(outState);
+	}
+
+	public class MyAdapter {
+		public MyAdapter(final ArrayList<String> list, final FragmentWithLocalStates context) {
+		}
+
+		public List<String> getAllItems() {
+			return Collections.emptyList();
+		}
+	}
+}

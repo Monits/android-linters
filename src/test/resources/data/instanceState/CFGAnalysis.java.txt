@@ -1,0 +1,77 @@
+import android.app.Activity;
+import android.os.Bundle;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+
+public class CFGAnalysis extends Activity {
+
+	private static final String ANSWER_ITEM = "ITEM";
+	public static final String PENDING_ATTACHMENTS = "PENDING_ATTACHMENTS";
+	public static final String QUESTION_MESSAGE_HISTORY = "QuestionHistoryMessages";
+	public static final String ANSWER = "ANSWER";
+
+	private Map<String, Long> pendingItems;
+	private Set<Long> questionMessageHistory;
+	private Map<String, Long> answers;
+
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		configureUI(savedInstanceState);
+	}
+
+	private void configureUI(final Bundle savedInstanceState) {
+		final Bundle extras = getIntent().getExtras();
+
+		if (extras != null
+				&& extras.containsKey(ANSWER_ITEM)) {
+			loadFromBundle(extras);
+		} else if (savedInstanceState != null
+				&& savedInstanceState.containsKey(ANSWER_ITEM)) {
+			loadFromBundle(savedInstanceState);
+		}
+	}
+
+	private void loadFromBundle(final Bundle bundle) {
+		if (bundle.containsKey(QUESTION_MESSAGE_HISTORY)) {
+			questionMessageHistory =
+					(Set<Long>) bundle.getSerializable(QUESTION_MESSAGE_HISTORY);
+		}
+
+		if (bundle.containsKey(PENDING_ATTACHMENTS)) {
+			final Map<String, Long> savedPendingItems =
+					(Map<String, Long>) bundle.getSerializable(PENDING_ATTACHMENTS);
+
+			if (savedPendingItems != null && !savedPendingItems.isEmpty()) {
+				for (final Map.Entry<String, Long> entry : savedPendingItems.entrySet()) {
+					for (final long question : questionMessageHistory) {
+						if (entry.getValue() == question) {
+							getItem(entry.getKey(), question);
+						}
+					}
+				}
+				savedPendingItems.clear();
+			}
+		}
+
+		if (bundle.containsKey(ANSWER)) {
+			answers = (Map<String, Long>) bundle.getSerializable(ANSWER);
+		} else {
+			configureUI(bundle);
+		}
+	}
+
+	private void getItem(final String key, final Long value) {
+	}
+
+	@Override
+	public void onSaveInstanceState(final Bundle outState) {
+		outState.putSerializable(PENDING_ATTACHMENTS, (HashMap<String, Long>) pendingItems);
+		outState.putSerializable(QUESTION_MESSAGE_HISTORY, (HashSet<Long>) questionMessageHistory);
+		outState.putSerializable(ANSWER, (HashMap<String, Long>) answers);
+		super.onSaveInstanceState(outState);
+	}
+}
