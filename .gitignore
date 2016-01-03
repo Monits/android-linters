@@ -18,6 +18,7 @@ local.properties
 .*
 !.gitignore
 !.arc*
+!.travis.yml
 
 target/
 

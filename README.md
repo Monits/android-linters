@@ -1,3 +1,6 @@
+[![Build Status](https://secure.travis-ci.org/Monits/android-linters.png)](http://travis-ci.org/Monits/android-linters)
+[![Coverage Status](https://coveralls.io/repos/Monits/android-linters/badge.png)](https://coveralls.io/r/Monits/android-linters)
+[![Download](https://api.bintray.com/packages/monits/monits-android/android-linters/images/download.svg) ](https://bintray.com/monits/monits-android/android-linters/_latestVersion)
 # Android Linters
 
 Android Linters is a project which contains custom linters for an Android

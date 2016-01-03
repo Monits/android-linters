@@ -51,6 +51,11 @@
 			<url>http://nexus.monits.com/content/repositories/oss-releases/</url>
 			<name>Monits Releases</name>
 		</repository>
+		<repository>
+			<id>android-tools</id>
+			<url>https://dl.bintray.com/android/android-tools/</url>
+			<name>Android Tools jcenter</name>
+		</repository>
 	</repositories>
 
 	<distributionManagement>
@@ -131,6 +136,24 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.7.3.201502191951</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.eluder.coveralls</groupId>
+				<artifactId>coveralls-maven-plugin</artifactId>
+				<version>3.0.1</version>
 			</plugin>
 		</plugins>
 	</build>
