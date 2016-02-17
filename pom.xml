@@ -48,6 +48,13 @@
 		</repository>
 	</repositories>
 
+	<distributionManagement>
+		<repository>
+			<id>bintray</id>
+			<url>https://api.bintray.com/maven/monits/monits-android/android-linters/;publish=1</url>
+		</repository>
+	</distributionManagement>
+
 	<properties>
 		<android-version>24.4.0-beta1</android-version>
 		<fingbugs-annotations-version>3.0.0</fingbugs-annotations-version>
