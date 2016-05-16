@@ -15,7 +15,6 @@ package com.monits.linters;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -147,6 +146,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	 *
 	 * @return The methods that have a bundle as param
 	 */
+	@SuppressWarnings("unchecked")
 	@Nonnull
 	private Set<MethodNode> checkMethodCall(@Nonnull final ClassContext context, @Nonnull final ClassNode classNode,
 			@Nonnull final MethodNode methodToIterate, @Nonnull final MethodNode saveRestoreMethod,
@@ -156,12 +156,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		if (methodToIterate.localVariables != null) {
 			// We are sorting 'methodToIterate.localVariables' because the index of the each item is always
 			// a position of the Local Variable Table, but sometimes those index do not match with the position.
-			Collections.sort(methodToIterate.localVariables, new Comparator<LocalVariableNode>() {
-				@Override
-				public int compare(final LocalVariableNode o1, final LocalVariableNode o2) {
-					return o1.index - o2.index;
-				}
-			});
+			Collections.sort(methodToIterate.localVariables, new LocalVariableNodeComparator());
 		}
 
 		final AbstractInsnNode[] instructions = methodToIterate.instructions.toArray();
