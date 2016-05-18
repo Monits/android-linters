@@ -15,7 +15,7 @@ package com.monits.linters.instancestate.holder;
 
 import javax.annotation.Nonnull;
 
-import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 
 /**
@@ -23,7 +23,7 @@ import org.objectweb.asm.tree.MethodNode;
  */
 public class InstanceStateHolder {
 
-	private final AbstractInsnNode instruction;
+	private final MethodInsnNode instruction;
 	private final MethodNode methodNode;
 
 	/**
@@ -32,7 +32,7 @@ public class InstanceStateHolder {
 	 * @param instruction The instruction of the state analyzed
 	 * @param methodNode The methodNode of the state analyzed
 	 */
-	public InstanceStateHolder(@Nonnull final AbstractInsnNode instruction, @Nonnull final MethodNode methodNode) {
+	public InstanceStateHolder(@Nonnull final MethodInsnNode instruction, @Nonnull final MethodNode methodNode) {
 		this.instruction = instruction;
 		this.methodNode = methodNode;
 	}
@@ -41,7 +41,7 @@ public class InstanceStateHolder {
 	 * @return the instruction
 	 */
 	@Nonnull
-	public AbstractInsnNode getInstruction() {
+	public MethodInsnNode getInstruction() {
 		return instruction;
 	}
 
