@@ -334,7 +334,12 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		while (expectedArgs > 0) {
 			node = node.getPrevious();
 			
-			if (node.getOpcode() > 0 && node.getOpcode() <= 0x2d) {
+			// NOP + unknown opcodes (I get fed -1)
+			if (node.getOpcode() < 0) {
+				continue;
+			}
+			
+			if (node.getOpcode() <= 0x2d) {
 				// *const*, ldc*, *push and *load* up to aload_3; all add a single value to the stack
 				expectedArgs--;
 			} else if (node.getOpcode() <= 0x35) {
@@ -391,7 +396,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				// new creates a new object
 				expectedArgs--;
 			} else {
-				// More branching instructions, throws and things we don't expect here
+				// More branching instructions, throws and things we don't expect here, except checkcast / instanceof which take 1 and put 1
 			}
 		}
 		
