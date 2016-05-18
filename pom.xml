@@ -56,7 +56,7 @@
 	</distributionManagement>
 
 	<properties>
-		<android-version>24.4.0-beta1</android-version>
+		<android-version>25.1.0</android-version>
 		<fingbugs-annotations-version>3.0.0</fingbugs-annotations-version>
 		<asm-all-version>5.0.3</asm-all-version>
 		<guava-version>17.0</guava-version>

@@ -1,0 +1,32 @@
+import android.app.Activity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+
+public class NonConstantKeys extends Activity {
+
+	// not final!
+	private static String KEY_STRING = "KEY_STRING";
+
+	private String text;
+
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if (savedInstanceState != null) {
+			text = savedInstanceState.getString(KEY_STRING);
+		}
+	}
+
+	@Override
+	protected void onSaveInstanceState(final Bundle outState) {
+		outState.putString(KEY_STRING, text);
+		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	protected void onResume() {
+		Log.d("Activity", "onResume");
+		super.onResume();
+	}
+}

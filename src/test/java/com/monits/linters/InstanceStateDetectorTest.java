@@ -20,7 +20,9 @@ import static com.monits.linters.InstanceStateDetector.RESTORED_BUT_NEVER_SAVED;
 import static com.monits.linters.InstanceStateDetector.RESTORED_WITH_DIFERENT_TYPES;
 import static com.monits.linters.InstanceStateDetector.SAVED_BUT_NEVER_RESTORED;
 import static com.monits.linters.InstanceStateDetector.SAVED_WITH_DIFERENT_TYPES;
+import static com.monits.linters.InstanceStateDetector.NON_CONSTANT_KEY;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -55,8 +57,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/ActivityWithStatesSavedAndRestored.java")
 				));
 
-		assertTrue("There are unexpected warnings when checks saved and restored states in an Activity",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when checks saved and restored states in an Activity",
+				getWarnings(), empty());
 	}
 
 	public void testActivityWithInstanceStatesSavedButNotRestored() throws Exception {
@@ -100,8 +102,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/ActivityWithStatesSavedAndRestoredInDifferentMethods.java")
 				));
 
-		assertTrue("There are unexpected warnings when checks restored states in different methods in an Activity",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when checks restored states in different methods in an Activity",
+				getWarnings(), empty());
 	}
 
 	public void testFragmentWithInstancesStatesSavedAndRestored() throws Exception {
@@ -111,8 +113,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/FragmentWithInstancesStatesSavedAndRestored.java")
 				));
 
-		assertTrue("There are unexpected warnings when checks saved and restored states in a Fragment",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when checks saved and restored states in a Fragment",
+				getWarnings(), empty());
 	}
 
 	public void testFragmentWithInstancesStatesSavedButNotRestored() throws Exception {
@@ -130,6 +132,30 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				.build()
 				));
 	}
+	
+	public void testNonConstantKeys() throws Exception {
+		lintProject(
+			compile(
+				file("instanceState/NonConstantKeys.java.txt=>"
+						+ "src/NonConstantKeys.java")
+				));
+
+		assertThat("Non constant keys used but not reported on save", getWarnings(),
+			Matchers.hasItem(new WarningMatcherBuilder()
+				.fileName("NonConstantKeys.java")
+				.line(17)
+				.message(NON_CONSTANT_KEY)
+				.build()
+				));
+		
+		assertThat("Non constant keys used but not reported on restore", getWarnings(),
+			Matchers.hasItem(new WarningMatcherBuilder()
+				.fileName("NonConstantKeys.java")
+				.line(23)
+				.message(NON_CONSTANT_KEY)
+				.build()
+				));
+	}
 
 	public void testFragmentWithInstancesStatesSavedAndRestoredInDifferentMethods() throws Exception {
 		lintProject(
@@ -138,8 +164,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/FragmentWithInstancesStatesSavedAndRestoredInDifferentMethods.java")
 				));
 
-		assertTrue("There are unexpected warnings when checks restored states in different methods in a Fragment",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when checks restored states in different methods in a Fragment",
+				getWarnings(), empty());
 	}
 
 	public void testFragmentWithInstancesStatesRestoredButNeverSaved() throws Exception {
@@ -248,8 +274,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				compile(file("instanceState/SaveAndRestoreLocalInstanceStates.java.txt=>"
 						+ "src/SaveAndRestoreLocalInstanceStates.java")));
 
-		assertTrue("There are unexpected warnings when checking local saved/restored states",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when checking local saved/restored states",
+				getWarnings(), empty());
 	}
 
 	public void testCFGAnalysis() throws Exception {
@@ -274,8 +300,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						"instanceState/RestoreFromExtras.java.txt=>"
 						+ "src/RestoreFromExtras.java")));
 
-		assertTrue("There are unexpected warnings when checking data from extras",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when checking data from extras",
+				getWarnings(), empty());
 	}
 
 	public void testFragmentWithLocalStates() throws Exception {
@@ -283,8 +309,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				compile(file("instanceState/FragmentWithLocalStates.java.txt=>"
 						+ "src/FragmentWithLocalStates.java")));
 
-		assertTrue("There are unexpected warning when check local states in the fragment",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warning when check local states in the fragment",
+				getWarnings(), empty());
 	}
 
 	public void testRestoreStateLocallyAndThenInAField() throws Exception {
@@ -292,8 +318,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 				compile(file("instanceState/RestoreStateLocallyAndThenInAField.java.txt=>"
 						+ "src/RestoreStateLocallyAndThenInAField.java")));
 
-		assertTrue("There are unexpected warning when restore a state locally and then in a field",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warning when restore a state locally and then in a field",
+				getWarnings(), empty());
 	}
 
 	public void testSaveRestoreLocallyStatesInAListFragment() throws Exception {
@@ -303,8 +329,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/SaveRestoreLocallyStatesInAListFragment.java")
 				));
 
-		assertTrue("There are unexpected warnings when save and restore states locally in a ListFragment",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when save and restore states locally in a ListFragment",
+				getWarnings(), empty());
 	}
 
 	public void testRestoreLocalVariableInField() throws Exception {
@@ -314,8 +340,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/RestoreLocalVariableInField.java")
 				));
 
-		assertTrue("There are unexpected warnings when restore a state locally and then in a Field",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when restore a state locally and then in a Field",
+				getWarnings(), empty());
 	}
 
 	public void testIgnoreMissingSaveInstanceStates() throws Exception {
@@ -342,8 +368,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/TestIgnoreMissingRestoreInstanceStates.java")
 				));
 
-		assertTrue("There are unexpected warnings when ignore a missing restored state",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when ignore a missing restored state",
+				getWarnings(), empty());
 	}
 
 	public void testIgnoreMissingSaveInstanceStateWithAuxiliarMethod() throws Exception {
@@ -370,8 +396,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/TestIgnoreOverwritingSaveInstanceState.java")
 				));
 
-		assertTrue("There are unexpected warnings when trying to ignore a state that is being overwritten",
-				getWarnings().isEmpty());
+		assertThat("There are unexpected warnings when trying to ignore a state that is being overwritten",
+				getWarnings(), empty());
 	}
 
 	public void testIgnoreRestoredASavedStateInSameField() throws Exception {
@@ -398,8 +424,8 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 						+ "src/TestIgnoreSaveAStateWithDifferentType.java")
 				));
 
-		assertTrue("There are unexpected warnings while trying to ignore an invalid type check"
-				+ " when a state is begin saved", getWarnings().isEmpty());
+		assertThat("There are unexpected warnings while trying to ignore an invalid type check"
+				+ " when a state is begin saved", getWarnings(), empty());
 	}
 
 	public void testIgnoreRestoreAStateWithDifferentType() throws Exception {

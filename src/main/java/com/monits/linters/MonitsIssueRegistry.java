@@ -31,6 +31,9 @@ public class MonitsIssueRegistry extends IssueRegistry {
 			ParcelDetector.MISSING_OR_OUT_OF_ORDER,
 			ParcelDetector.INCOMPATIBLE_READ_WRITE_TYPE,
 			FactoryMethodDetector.USE_FACTORY_METHOD_INSTEAD_NEW_FRAGMENT,
-			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES);
+			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES,
+			InstanceStateDetector.KEY_IS_NOT_CONSTANT,
+			InstanceStateDetector.OVERWRITING_FIELDS,
+			InstanceStateDetector.OVERWRITING_INSTANCE_STATES);
 	}
 }
