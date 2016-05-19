@@ -1,5 +1,5 @@
-[![Build Status](https://secure.travis-ci.org/Monits/android-linters.png)](http://travis-ci.org/Monits/android-linters)
-[![Coverage Status](https://coveralls.io/repos/Monits/android-linters/badge.png)](https://coveralls.io/r/Monits/android-linters)
+[![Build Status](https://secure.travis-ci.org/Monits/android-linters.svg?branch=development)](http://travis-ci.org/Monits/android-linters)
+[![Coverage Status](https://coveralls.io/repos/Monits/android-linters/badge.svg?branch=development)](https://coveralls.io/r/Monits/android-linters?branch=development)
 [![Download](https://api.bintray.com/packages/monits/monits-android/android-linters/images/download.svg) ](https://bintray.com/monits/monits-android/android-linters/_latestVersion)
 # Android Linters
 
