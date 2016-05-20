@@ -1,6 +1,6 @@
 # History
 
-##v1.2.0 - unreleased
+##v1.2.0
  - Added `ViewInflateDetector` to report issues on calls to `View.inflate`
     prior to Lollipop
 
