@@ -49,7 +49,7 @@ public class ViewInflateDetector extends Detector implements JavaScanner {
 	
 	@Override
 	public EnumSet<Scope> getApplicableFiles() {
-		return EnumSet.of(Scope.JAVA_FILE, Scope.MANIFEST);
+		return Scope.JAVA_FILE_SCOPE;
 	}
 	
 	@Override
