@@ -25,8 +25,8 @@ import org.hamcrest.Matchers;
 import com.android.tools.lint.detector.api.Detector;
 import com.android.tools.lint.detector.api.Issue;
 import com.google.common.base.Joiner;
-import com.monits.linters.AbstractTestCase;
-import com.monits.linters.matchers.WarningMatcherBuilder;
+import com.monits.linters.test.AbstractTestCase;
+import com.monits.linters.test.matchers.WarningMatcherBuilder;
 
 
 public class ViewInflateDetectorTest extends AbstractTestCase {
