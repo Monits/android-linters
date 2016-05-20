@@ -1,5 +1,17 @@
 # History
 
+##v1.2.0 - unreleased
+ - Added NeedlessNullnessDetector to report on needless @Nullable / @NonNull
+    annotations on primitive / void parameters and return types.
+
+##v1.1.9
+ - Fix compatibility with latest android tools.
+ - Fix NPE in `InstanceStateDetector` when not using constants as keys.
+ - Not using constants as keys in `InstanceStateDetector` is now reported.
+
+##v1.1.8
+ - Use Java 7 instead of 8.
+
 ##v1.1.7
 * Fix scope of the detectors
 * Fix in ParcelDetector when check for missing calling super
