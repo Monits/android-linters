@@ -39,6 +39,7 @@ public class MonitsIssueRegistry extends IssueRegistry {
 			InstanceStateDetector.KEY_IS_NOT_CONSTANT,
 			InstanceStateDetector.OVERWRITING_FIELDS,
 			InstanceStateDetector.OVERWRITING_INSTANCE_STATES,
+			InstanceStateDetector.INVALID_TYPE,
 			ViewInflateDetector.VIEW_INFLATE_IGNORES_THEME);
 	}
 }

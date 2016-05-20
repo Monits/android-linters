@@ -21,11 +21,10 @@ import static com.monits.linters.bc.InstanceStateDetector.RESTORED_BUT_NEVER_SAV
 import static com.monits.linters.bc.InstanceStateDetector.RESTORED_WITH_DIFERENT_TYPES;
 import static com.monits.linters.bc.InstanceStateDetector.SAVED_BUT_NEVER_RESTORED;
 import static com.monits.linters.bc.InstanceStateDetector.SAVED_WITH_DIFERENT_TYPES;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
-import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -34,7 +33,7 @@ import org.hamcrest.Matchers;
 
 import com.android.tools.lint.detector.api.Detector;
 import com.android.tools.lint.detector.api.Issue;
-import com.monits.linters.bc.InstanceStateDetector;
+import com.google.common.collect.ImmutableList;
 import com.monits.linters.test.AbstractTestCase;
 import com.monits.linters.test.matchers.WarningMatcherBuilder;
 
@@ -48,7 +47,13 @@ public class InstanceStateDetectorTest extends AbstractTestCase {
 	@Override
 	@Nonnull
 	protected List<Issue> getIssues() {
-		return Arrays.asList(InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES);
+		return ImmutableList.<Issue>of(
+			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES,
+			InstanceStateDetector.INVALID_TYPE,
+			InstanceStateDetector.KEY_IS_NOT_CONSTANT,
+			InstanceStateDetector.OVERWRITING_FIELDS,
+			InstanceStateDetector.OVERWRITING_INSTANCE_STATES
+		);
 	}
 
 	public void testActivityWithStatesSavedAndRestored() throws Exception {
