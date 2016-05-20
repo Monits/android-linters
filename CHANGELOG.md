@@ -1,8 +1,6 @@
 # History
 
 ##v1.2.0 - unreleased
- - Added NeedlessNullnessDetector to report on needless @Nullable / @NonNull
-    annotations on primitive / void parameters and return types.
  - Added `ViewInflateDetector` to report issues on calls to `View.inflate`
     prior to Lollipop
 

@@ -20,7 +20,6 @@ import javax.annotation.Nonnull;
 
 import com.android.tools.lint.client.api.IssueRegistry;
 import com.android.tools.lint.detector.api.Issue;
-import com.monits.linters.ast.NeedlessNullnessAnnotationDetector;
 import com.monits.linters.ast.ViewInflateDetector;
 import com.monits.linters.parcelable.ParcelDetector;
 
@@ -37,7 +36,6 @@ public class MonitsIssueRegistry extends IssueRegistry {
 			InstanceStateDetector.KEY_IS_NOT_CONSTANT,
 			InstanceStateDetector.OVERWRITING_FIELDS,
 			InstanceStateDetector.OVERWRITING_INSTANCE_STATES,
-			NeedlessNullnessAnnotationDetector.NEEDLESS_NULLNESS_ANNOTATION,
 			ViewInflateDetector.VIEW_INFLATE_IGNORES_THEME);
 	}
 }
