@@ -11,7 +11,7 @@
 	<groupId>com.monits</groupId>
 	<artifactId>android-linters</artifactId>
 	<packaging>jar</packaging>
-	<version>1.2.0-SNAPSHOT</version>
+	<version>1.3.0-SNAPSHOT</version>
 	<name>android-linters</name>
 	<url>http://maven.apache.org</url>
 
