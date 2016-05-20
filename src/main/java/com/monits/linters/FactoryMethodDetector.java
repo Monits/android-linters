@@ -31,7 +31,7 @@ import com.android.tools.lint.detector.api.Implementation;
 import com.android.tools.lint.detector.api.Issue;
 import com.android.tools.lint.detector.api.Scope;
 import com.android.tools.lint.detector.api.Severity;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 
 public class FactoryMethodDetector extends Detector implements Detector.ClassScanner {
 
@@ -50,7 +50,7 @@ public class FactoryMethodDetector extends Detector implements Detector.ClassSca
 			new Implementation(FactoryMethodDetector.class, Scope.CLASS_FILE_SCOPE));
 
 	private static final Set<String> FRAGMENT_TYPE =
-			Sets.newHashSet("android/support/v4/app/Fragment", "android/app/Fragment");
+			ImmutableSet.of("android/support/v4/app/Fragment", "android/app/Fragment");
 
 	@Override
 	@Nullable

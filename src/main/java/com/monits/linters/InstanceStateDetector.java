@@ -15,7 +15,6 @@ package com.monits.linters;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -24,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -48,7 +48,7 @@ import com.android.tools.lint.detector.api.Implementation;
 import com.android.tools.lint.detector.api.Issue;
 import com.android.tools.lint.detector.api.Scope;
 import com.android.tools.lint.detector.api.Severity;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import com.monits.linters.instancestate.holder.InstanceStateHolder;
 
 /**
@@ -67,6 +67,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			"The method %s expected a %s type, but the field %s is a %s type";
 	public static final String RESTORED_WITH_DIFERENT_TYPES =
 			"The field %s is a %s type, but the method %s is returning a %s type";
+	public static final String NON_CONSTANT_KEY = "The key being used to access the bundle is non-constant";
 
 	public static final Issue MISSING_SAVED_INSTANCE_STATES = Issue.create("missingSavedOrRestoredInstanceState",
 			"Missing saved or restored instance states",
@@ -91,16 +92,23 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			"Check if the type saved or restored is valid",
 			Category.CORRECTNESS, 6, Severity.ERROR,
 			new Implementation(InstanceStateDetector.class, Scope.CLASS_FILE_SCOPE));
+	
+	public static final Issue KEY_IS_NOT_CONSTANT = Issue.create("instanceStateKeyIsNotConstant",
+			"Key used to access bundle data is not constant",
+			"Non constant keys may lead to inconsistent data persistance / recovery",
+			Category.CORRECTNESS, 6, Severity.WARNING,
+			new Implementation(InstanceStateDetector.class, Scope.CLASS_FILE_SCOPE));
 
-	private static final Set<String> METHOD_SAVE_INSTANCES = Sets.newHashSet("onSaveInstanceState");
+	
+	private static final Set<String> METHOD_SAVE_INSTANCES = ImmutableSet.of("onSaveInstanceState");
 	private static final Set<String> METHOD_RESTORE_INSTANCES =
-			Sets.newHashSet(
-					// Common methods
-					"onCreate",
-					// Activity methods
-					"onPostCreate", "onRestoreInstanceState",
-					// Fragment methods
-					"onActivityCreated", "onCreateView", "onViewCreated");
+			ImmutableSet.of(
+				// Common methods
+				"onCreate",
+				// Activity methods
+				"onPostCreate", "onRestoreInstanceState",
+				// Fragment methods
+				"onActivityCreated", "onCreateView", "onViewCreated");
 
 	private static final String ANDROID_BUNDLE_PATH = "android/os/Bundle";
 
@@ -147,6 +155,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	 *
 	 * @return The methods that have a bundle as param
 	 */
+	@SuppressWarnings("unchecked")
 	@Nonnull
 	private Set<MethodNode> checkMethodCall(@Nonnull final ClassContext context, @Nonnull final ClassNode classNode,
 			@Nonnull final MethodNode methodToIterate, @Nonnull final MethodNode saveRestoreMethod,
@@ -156,33 +165,29 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		if (methodToIterate.localVariables != null) {
 			// We are sorting 'methodToIterate.localVariables' because the index of the each item is always
 			// a position of the Local Variable Table, but sometimes those index do not match with the position.
-			Collections.sort(methodToIterate.localVariables, new Comparator<LocalVariableNode>() {
-				@Override
-				public int compare(final LocalVariableNode o1, final LocalVariableNode o2) {
-					return o1.index - o2.index;
-				}
-			});
+			Collections.sort(methodToIterate.localVariables, new LocalVariableNodeComparator());
 		}
 
 		final AbstractInsnNode[] instructions = methodToIterate.instructions.toArray();
 		for (final AbstractInsnNode abstractInsnNode : instructions) {
-			if (abstractInsnNode instanceof MethodInsnNode
+			if (abstractInsnNode instanceof MethodInsnNode) {
+				final MethodInsnNode methodNode = (MethodInsnNode) abstractInsnNode;
 					// Ignore same method (ej super.onCreate(...))
-					&& !((MethodInsnNode) abstractInsnNode).name.equals(call.name)) {
-				final String descriptor = ((MethodInsnNode) abstractInsnNode).desc;
-				// check if the parameter has a bundle paramenter
-				if (descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'))
-						.contains("Landroid/os/Bundle;")) {
-					for (final MethodNode element : (List<MethodNode>) classNode.methods) {
-						// find the methodNode
-						if (element instanceof MethodNode
-								&& element.name.equals(((MethodInsnNode) abstractInsnNode).name)) {
-							methods.add(element);
+				if (!methodNode.name.equals(call.name)) {
+					final String descriptor = methodNode.desc;
+					// check if the parameter has a bundle parameter
+					if (descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')'))
+							.contains("Landroid/os/Bundle;")) {
+						for (final MethodNode element : (List<MethodNode>) classNode.methods) {
+							// find the methodNode
+							if (element instanceof MethodNode && element.name.equals(methodNode.name)) {
+								methods.add(element);
+							}
 						}
+					} else {
+						//we have something that we can pass to checkInstruction
+						checkInstruction(context, classNode, methodToIterate, saveRestoreMethod, methodNode);
 					}
-				} else {
-					//we have something that we can pass to checkInstruction
-					checkInstruction(context, classNode, methodToIterate, saveRestoreMethod, abstractInsnNode);
 				}
 			}
 		}
@@ -200,9 +205,9 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 	 */
 	public void checkInstruction(@Nonnull final ClassContext context, @Nonnull final ClassNode classNode,
 			@Nonnull final MethodNode currentMethod, @Nonnull final MethodNode originaryMethod,
-			@Nonnull final AbstractInsnNode instruction) {
+			@Nonnull final MethodInsnNode instruction) {
 
-		if (!ANDROID_BUNDLE_PATH.equals(((MethodInsnNode) instruction).owner)
+		if (!ANDROID_BUNDLE_PATH.equals(instruction.owner)
 				|| instruction.getOpcode() != Opcodes.INVOKEVIRTUAL) {
 			return;
 		}
@@ -212,13 +217,13 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		}
 
 		// ignore those method that no have params
-		final String descriptor = ((MethodInsnNode) instruction).desc;
+		final String descriptor = instruction.desc;
 		if (descriptor.substring(descriptor.indexOf('(') + 1, descriptor.indexOf(')')).isEmpty()) {
 			return;
 		}
 
 		// Ignore containsKey method
-		if ("containsKey".equals(((MethodInsnNode) instruction).name)) {
+		if ("containsKey".equals(instruction.name)) {
 			return;
 		}
 
@@ -228,16 +233,28 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		}
 
 		if (METHOD_SAVE_INSTANCES.contains(originaryMethod.name)) {
-			final String bundleKey = getBundleKey(instruction);
-			if (savedStates.containsKey(bundleKey)) {
-				context.report(OVERWRITING_INSTANCE_STATES, currentMethod, instruction,
-						context.getLocation(instruction), String.format(ALREADY_SAVED, bundleKey));
+			// TODO : Check call is actually to a save method!
+			final String bundleKey = getBundleKeyForMethodCall(instruction);
+			if (bundleKey == null) {
+				context.report(KEY_IS_NOT_CONSTANT, currentMethod, instruction,
+						context.getLocation(instruction), NON_CONSTANT_KEY);
 			} else {
-				savedStates.put(bundleKey, new InstanceStateHolder(instruction, currentMethod));
+				if (savedStates.containsKey(bundleKey)) {
+					context.report(OVERWRITING_INSTANCE_STATES, currentMethod, instruction,
+							context.getLocation(instruction), String.format(ALREADY_SAVED, bundleKey));
+				} else {
+					savedStates.put(bundleKey, new InstanceStateHolder(instruction, currentMethod));
+				}
 			}
 		} else if (METHOD_RESTORE_INSTANCES.contains(originaryMethod.name)) {
-			final String bundleKey = getBundleKey(instruction);
-			restoredStates.put(bundleKey, new InstanceStateHolder(instruction, currentMethod));
+			// TODO : Check call is actually to a restore method!
+			final String bundleKey = getBundleKeyForMethodCall(instruction);
+			if (bundleKey == null) {
+				context.report(KEY_IS_NOT_CONSTANT, currentMethod, instruction,
+						context.getLocation(instruction), NON_CONSTANT_KEY);
+			} else {
+				restoredStates.put(bundleKey, new InstanceStateHolder(instruction, currentMethod));
+			}
 		}
 	}
 
@@ -308,22 +325,87 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 		return (VarInsnNode) varNode;
 	}
 
-	@Nonnull
-	private String getBundleKey(@Nonnull final AbstractInsnNode instruction) {
+	@CheckForNull
+	private String getBundleKeyForMethodCall(@Nonnull final MethodInsnNode instruction) {
+		int expectedArgs = instruction.name.startsWith("put") ? 2 : 1;
 		AbstractInsnNode node = instruction;
-
-		// get the key used
-		while (!(node instanceof LdcInsnNode)) {
+		
+		// Lookup the stack, until we find the first argument, which is always the key
+		while (expectedArgs > 0) {
 			node = node.getPrevious();
+			
+			// NOP + unknown opcodes (I get fed -1)
+			if (node.getOpcode() < 0) {
+				continue;
+			}
+			
+			if (node.getOpcode() <= 0x2d) {
+				// *const*, ldc*, *push and *load* up to aload_3; all add a single value to the stack
+				expectedArgs--;
+			} else if (node.getOpcode() <= 0x35) {
+				// load form array, consume 2 elements form stack, and pushes one back
+				expectedArgs++;
+			} else if (node.getOpcode() <= 0x4e) {
+				// *store* moves one element form the the stack to the local var table
+				expectedArgs++;
+			} else if (node.getOpcode() <= 0x56) {
+				// *astore* moves one element form the the stack to a local array
+				expectedArgs += 3;
+			} else if (node.getOpcode() <= 0x57) {
+				// pop discards a single value
+				expectedArgs++;
+			} else if (node.getOpcode() <= 0x58) {
+				// pop2 discards 2 values
+				expectedArgs += 2;
+			} else if (node.getOpcode() <= 0x58) {
+				// dup* adds an extra value to the stack
+				expectedArgs += 2;
+			} else if (node.getOpcode() <= 0x5e) {
+				// TODO : dup2* use words, but they may be a single or 2 values...
+			} else if (node.getOpcode() <= 0x5f) {
+				// swap doesn't alter stack size
+			} else if (node.getOpcode() <= 0x73) {
+				// *add, *sub, *mul, *div, *rem takes 2 values, and pushes back 1
+				expectedArgs++;
+			} else if (node.getOpcode() <= 0x77) {
+				// *neg doen't change the stack size
+			} else if (node.getOpcode() <= 0x83) {
+				// *shl, *shr, *and, *or, *xor takes 2 values, and pushes back 1
+				expectedArgs++;
+			} else if (node.getOpcode() <= 0x93) {
+				// iinc, x2y don't modify the stack size
+			} else if (node.getOpcode() <= 0x98) {
+				// *cmp* takes 2 values, and pushes back 1
+				expectedArgs++;
+			} else if (node.getOpcode() <= 0xb1) {
+				// branching, goto, return... none expected here...
+			} else if (node.getOpcode() <= 0xb2) {
+				// getstatic
+				expectedArgs--;
+			} else if (node.getOpcode() <= 0xb3) {
+				// putstatic
+				expectedArgs++;
+			} else if (node.getOpcode() <= 0xb4) {
+				// getfield takes one and puts one back
+			} else if (node.getOpcode() <= 0xb5) {
+				// putfield takes two
+				expectedArgs += 2;
+			} else if (node.getOpcode() <= 0xba) {
+				// TODO : invoke* may take arguments, not sure how to deal with this...
+			} else if (node.getOpcode() <= 0xbb) {
+				// new creates a new object
+				expectedArgs--;
+			} else {
+				// More branching instructions, throws and things we don't expect here, except checkcast / instanceof which take 1 and put 1
+			}
+		}
+		
+		// We have our instruction!
+		if (node instanceof LdcInsnNode) {
+			return ((LdcInsnNode) node).cst.toString();
 		}
 
-		// check if we have local variables
-		if (node.getPrevious() instanceof LdcInsnNode) {
-			// get the previos node to get the key
-			node = node.getPrevious();
-		}
-
-		return ((LdcInsnNode) node).cst.toString();
+		return null;
 	}
 
 	@Override
@@ -391,7 +473,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				statesToRemove.remove(entry.getKey());
 			}
 
-			final AbstractInsnNode instruction = entry.getValue().getInstruction();
+			final MethodInsnNode instruction = entry.getValue().getInstruction();
 			final FieldInsnNode field = getField(instruction, isRestoring);
 			if (field == null) {
 				// we are restoring or saving a key locally
@@ -407,7 +489,7 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 				fields.add(nameSaved);
 			}
 
-			final String descriptor = ((MethodInsnNode) instruction).desc;
+			final String descriptor = instruction.desc;
 			String type;
 			if (isRestoring) {
 				type = descriptor.substring(descriptor.indexOf(')') + 1);
@@ -444,10 +526,10 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 
 		// check the field type with the expected type
 		if (!field.desc.equals(expectedtype)) {
-			final AbstractInsnNode instruction = instanceScopeHolder.getInstruction();
+			final MethodInsnNode instruction = instanceScopeHolder.getInstruction();
 			context.report(INVALID_TYPE, instanceScopeHolder.getMethodNode(), instruction,
 					classContext.getLocation(instruction),
-					String.format(message, ((MethodInsnNode) instruction).name, expectedtype, field.name, field.desc));
+					String.format(message, instruction.name, expectedtype, field.name, field.desc));
 		}
 	}
 
@@ -512,9 +594,9 @@ public class InstanceStateDetector extends Detector implements Detector.ClassSca
 			@Nonnull final String message) {
 		if (!states.isEmpty()) {
 			for (final Entry<String, InstanceStateHolder> entry : states.entrySet()) {
-				final AbstractInsnNode instruction = entry.getValue().getInstruction();
+				final MethodInsnNode instruction = entry.getValue().getInstruction();
 				context.report(MISSING_SAVED_INSTANCE_STATES, entry.getValue().getMethodNode(), instruction,
-						classContext.getLocation(instruction), String.format(message, getBundleKey(instruction)));
+						classContext.getLocation(instruction), String.format(message, entry.getKey()));
 			}
 		}
 	}

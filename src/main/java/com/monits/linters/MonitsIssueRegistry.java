@@ -33,6 +33,12 @@ public class MonitsIssueRegistry extends IssueRegistry {
 			ParcelDetector.INCOMPATIBLE_READ_WRITE_TYPE,
 			FactoryMethodDetector.USE_FACTORY_METHOD_INSTEAD_NEW_FRAGMENT,
 			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES,
+<<<<<<< HEAD
 			NeedlessNullnessAnnotationDetector.NEEDLESS_NULLNESS_ANNOTATION);
+=======
+			InstanceStateDetector.KEY_IS_NOT_CONSTANT,
+			InstanceStateDetector.OVERWRITING_FIELDS,
+			InstanceStateDetector.OVERWRITING_INSTANCE_STATES);
+>>>>>>> staging
 	}
 }
