@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import com.android.tools.lint.client.api.IssueRegistry;
 import com.android.tools.lint.detector.api.Issue;
+import com.monits.linters.ast.NeedlessNullnessAnnotationDetector;
 import com.monits.linters.parcelable.ParcelDetector;
 
 public class MonitsIssueRegistry extends IssueRegistry {
@@ -31,6 +32,7 @@ public class MonitsIssueRegistry extends IssueRegistry {
 			ParcelDetector.MISSING_OR_OUT_OF_ORDER,
 			ParcelDetector.INCOMPATIBLE_READ_WRITE_TYPE,
 			FactoryMethodDetector.USE_FACTORY_METHOD_INSTEAD_NEW_FRAGMENT,
-			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES);
+			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES,
+			NeedlessNullnessAnnotationDetector.NEEDLESS_NULLNESS_ANNOTATION);
 	}
 }
