@@ -22,7 +22,7 @@ import com.android.tools.lint.client.api.IssueRegistry;
 import com.android.tools.lint.detector.api.Issue;
 import com.monits.linters.ast.ViewInflateDetector;
 import com.monits.linters.bc.FactoryMethodDetector;
-import com.monits.linters.bc.InstanceStateDetector;
+import com.monits.linters.ast.instancestate.InstanceStateDetector;
 import com.monits.linters.bc.parcelable.ParcelDetector;
 import com.monits.linters.manifest.DuplicatePermissionDetector;
 
@@ -35,11 +35,13 @@ public class MonitsIssueRegistry extends IssueRegistry {
 			ParcelDetector.MISSING_OR_OUT_OF_ORDER,
 			ParcelDetector.INCOMPATIBLE_READ_WRITE_TYPE,
 			FactoryMethodDetector.USE_FACTORY_METHOD_INSTEAD_NEW_FRAGMENT,
-			InstanceStateDetector.MISSING_SAVED_INSTANCE_STATES,
-			InstanceStateDetector.KEY_IS_NOT_CONSTANT,
-			InstanceStateDetector.OVERWRITING_FIELDS,
-			InstanceStateDetector.OVERWRITING_INSTANCE_STATES,
+			InstanceStateDetector.DIFFERENT_FIELDS,
 			InstanceStateDetector.INVALID_TYPE,
+			InstanceStateDetector.KEY_IS_NOT_CONSTANT,
+			InstanceStateDetector.RESTORED_BUT_NEVER_SAVED,
+			InstanceStateDetector.SAVED_BUT_NEVER_RESTORED,
+			InstanceStateDetector.STATE_ALREADY_RESTORED,
+			InstanceStateDetector.STATE_ALREADY_SAVED,
 			ViewInflateDetector.VIEW_INFLATE_IGNORES_THEME);
 	}
 }

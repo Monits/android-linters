@@ -21,7 +21,7 @@ public class ActivityWithStatesSavedAndRestoredInDifferentMethods extends Activi
 	protected void onRestoreInstanceState(final Bundle savedInstanceState) {
 		super.onRestoreInstanceState(savedInstanceState);
 		if (savedInstanceState != null) {
-			text = savedInstanceState.getString(KEY_STRING);
+			this.text = savedInstanceState.getString(KEY_STRING);
 		}
 	}
 

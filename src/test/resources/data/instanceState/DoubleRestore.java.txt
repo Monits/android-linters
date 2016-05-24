@@ -1,0 +1,25 @@
+import android.app.Activity;
+import android.os.Bundle;
+import android.util.Log;
+
+public class DoubleRestore extends Activity {
+
+	private static final String KEY_DOUBLE = "KEY_DOUBLE";
+	private double number;
+	private double number2;
+
+	@Override
+	protected void onCreate(final Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		if (savedInstanceState != null) {
+			number = savedInstanceState.getDouble(KEY_DOUBLE);
+			number2 = savedInstanceState.getDouble(KEY_DOUBLE);
+		}
+	}
+
+	@Override
+	protected void onSaveInstanceState(final Bundle outState) {
+		outState.putDouble(KEY_DOUBLE, number);
+		super.onSaveInstanceState(outState);
+	}
+}
