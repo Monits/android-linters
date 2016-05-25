@@ -5,8 +5,9 @@ import android.view.View;
 
 public class ActivityWithStatesSavedAndRestored extends Activity {
 
+	private static final String KEY_PREFIX = "KEY_";
 	private static final String KEY_INT = "KEY_INT";
-	private static final String KEY_STRING = "KEY_STRING";
+	private static final String KEY_STRING = KEY_PREFIX + "STRING";
 	private static final String KEY_BOOLEAN = "KEY_BOOLEAN";
 
 	private String text;
