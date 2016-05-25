@@ -1,5 +1,11 @@
 # History
 
+##v1.3.0
+ - Rewrote `InstanceStateDetector` as AST. More specific checks, different ids.
+    Beware if you were supressing any previous reports!
+ - Fixed some false positives on `ViewInflateDetector`,
+    and detect more cases we were previously not capable of.
+
 ##v1.2.0
  - Added `ViewInflateDetector` to report issues on calls to `View.inflate`
     prior to Lollipop
