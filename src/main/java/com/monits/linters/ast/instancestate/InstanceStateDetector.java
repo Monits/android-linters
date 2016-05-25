@@ -53,44 +53,44 @@ public class InstanceStateDetector extends Detector implements JavaScanner {
 	/* default */ static final String DIFFERENT_FIELDS_MSG = "The value stored under the key %s is not read and stored from the same field.";
 	/* default */ static final String KEY_IS_NOT_CONSTANT_MSG = "The field %s used as key for bundle properties is not static final";
 	
-	public static final Issue SAVED_BUT_NEVER_RESTORED = Issue.create("instanceStateNotRestored",
+	public static final Issue SAVED_BUT_NEVER_RESTORED = Issue.create("InstanceStateNotRestored",
 			"Instance state is saved but never restored",
 			"All persisted state should be restored, or not stored at all",
 			Category.CORRECTNESS, 6, Severity.WARNING,
 			new Implementation(InstanceStateDetector.class, Scope.JAVA_FILE_SCOPE));
 	
-	public static final Issue RESTORED_BUT_NEVER_SAVED = Issue.create("instanceStateNotSaved",
+	public static final Issue RESTORED_BUT_NEVER_SAVED = Issue.create("InstanceStateNotSaved",
 			"Instance state is restored but never saved",
 			"The state is never being stored, and is therefore always null. "
 			+ "You are either missing a store or this is dead code.",
 			Category.CORRECTNESS, 6, Severity.WARNING,
 			new Implementation(InstanceStateDetector.class, Scope.JAVA_FILE_SCOPE));
 	
-	public static final Issue STATE_ALREADY_RESTORED = Issue.create("alreadyRestored",
+	public static final Issue STATE_ALREADY_RESTORED = Issue.create("AlreadyRestored",
 			"The instance state is being restored more than once",
 			"This usually leads to harder to mantain code, keep things simple by centralizing state restoration",
 			Category.CORRECTNESS, 6, Severity.WARNING,
 			new Implementation(InstanceStateDetector.class, Scope.JAVA_FILE_SCOPE));
 	
-	public static final Issue STATE_ALREADY_SAVED = Issue.create("alreadySaved",
+	public static final Issue STATE_ALREADY_SAVED = Issue.create("AlreadySaved",
 			"A value has already been saved under this key and is beng overwritten",
 			"This usually leads to harder to mantain code, keep things simple by centralizing state persistence",
 			Category.CORRECTNESS, 6, Severity.WARNING,
 			new Implementation(InstanceStateDetector.class, Scope.JAVA_FILE_SCOPE));
 	
-	public static final Issue INVALID_TYPE = Issue.create("invalidType",
+	public static final Issue INVALID_TYPE = Issue.create("InvalidType",
 			"Save / restore method calls use different types for same key",
 			"Saving and restoring a value under a single key must always refer to it using the same type",
 			Category.CORRECTNESS, 6, Severity.ERROR,
 			new Implementation(InstanceStateDetector.class, Scope.JAVA_FILE_SCOPE));
 	
-	public static final Issue DIFFERENT_FIELDS = Issue.create("differentFields",
+	public static final Issue DIFFERENT_FIELDS = Issue.create("DifferentFields",
 			"Save / restore method calls for this key do not operate directly into the same field",
 			"For simplicity and correctness, you should read from / into the field directly, without local variables",
 			Category.CORRECTNESS, 6, Severity.WARNING,
 			new Implementation(InstanceStateDetector.class, Scope.JAVA_FILE_SCOPE));
 	
-	public static final Issue KEY_IS_NOT_CONSTANT = Issue.create("keyIsNotConstant",
+	public static final Issue KEY_IS_NOT_CONSTANT = Issue.create("KeyIsNotConstant",
 			"To ensure consistency, keys used to access bundles should be static final",
 			"To ensure consistency, keys used to access bundles should be static final",
 			Category.CORRECTNESS, 6, Severity.WARNING,
