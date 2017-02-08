@@ -24,6 +24,9 @@ fi
 # Extract the last version number
 version=$(echo "$metadata" | grep "<version>" | tail -n 1 | sed -n 's|\s*<version>\(.*\)</version>|\1|p')
 
+version="${version#${version%%[![:space:]]*}}"   # remove leading whitespace characters
+version="${version%${version##*[![:space:]]}}"   # remove trailing whitespace characters
+
 # Create the jar url
 android_jar_url=$ANDROID_LINTER_RELEASE_URL/$version/$ANDROID_JAR_FILE_NAME-$version.jar
 
